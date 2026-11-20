@@ -5,425 +5,331 @@ if (!isset($_SESSION['usuario_dni'])) {
     exit;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal de Certificados ISEM | MYS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
-    :root {
-      --bg: #f1f5f9;
-      --surface: #ffffff;
-      --primary: #0f172a;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --text: #1e293b;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --success-bg: #dcfce7;
-      --success-text: #166534;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
+      background-color: #f1f5f9;
     }
-
-    header {
-      background: var(--primary);
-      color: #fff;
-      padding: 1.5rem 1rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    .navbar-custom {
+      background-color: #0f172a;
     }
-    .header-inner {
-      max-width: 1140px;
-      margin: 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-    }
-    header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
-    header p { font-size: 0.875rem; color: #cbd5e1; margin-top: 0.2rem; }
-    .badge-update {
-      background: rgba(255,255,255,0.12);
-      padding: 0.4rem 0.85rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      color: #e2e8f0;
-    }
-
-    main {
-      max-width: 1140px;
-      margin: 1.5rem auto;
-      padding: 0 1rem 3rem;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .stat-card {
-      background: var(--surface);
-      padding: 1.1rem 1.25rem;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    }
-    .stat-label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; font-weight: 600; }
-    .stat-value { font-size: 1.65rem; font-weight: 700; color: var(--primary); margin-top: 0.25rem; }
-
-    .search-panel {
-      background: var(--surface);
-      padding: 1.25rem;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      margin-bottom: 1.5rem;
-      display: grid;
-      grid-template-columns: 2fr 1.5fr auto;
-      gap: 0.85rem;
-      align-items: end;
-    }
-    @media (max-width: 768px) {
-      .search-panel { grid-template-columns: 1fr; }
-    }
-
-    .field label {
-      display: block;
-      font-size: 0.82rem;
-      font-weight: 600;
-      margin-bottom: 0.35rem;
-      color: var(--text);
-    }
-    .field input, .field select {
-      width: 100%;
-      padding: 0.65rem 0.85rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .field input:focus, .field select:focus { border-color: var(--accent); }
-
-    .btn-clear {
-      padding: 0.65rem 1.1rem;
-      background: #e2e8f0;
-      color: var(--text);
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    .btn-clear:hover { background: #cbd5e1; }
-
-    .worker-banner {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-      margin-bottom: 1.25rem;
-      display: none;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-    .worker-banner h2 { font-size: 1.05rem; color: #1e3a8a; }
-    .worker-banner span { font-size: 0.88rem; color: #1d4ed8; font-weight: 600; }
-
-    .table-wrap {
-      background: var(--surface);
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      overflow-x: auto;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.9rem;
-    }
-    thead th {
-      background: #f8fafc;
-      padding: 0.85rem 1rem;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      color: var(--muted);
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-    tbody td {
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--border);
+    .table > :not(caption) > * > * {
       vertical-align: middle;
-    }
-    tbody tr:hover { background: #f8fafc; }
-
-    .dni-tag {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      background: #f1f5f9;
-      padding: 0.2rem 0.5rem;
-      border-radius: 6px;
-      font-weight: 600;
-      color: var(--primary);
-    }
-    .nota-badge {
-      display: inline-block;
-      background: var(--success-bg);
-      color: var(--success-text);
-      font-weight: 700;
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.82rem;
-    }
-    .actions {
-      display: flex;
-      gap: 0.5rem;
-      white-space: nowrap;
-    }
-    .btn-pdf {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.45rem 0.8rem;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 0.82rem;
-      font-weight: 600;
-      transition: background 0.15s;
-    }
-    .btn-view {
-      background: var(--accent);
-      color: #fff;
-    }
-    .btn-view:hover { background: var(--accent-hover); }
-    .btn-dl {
-      background: #f1f5f9;
-      color: var(--text);
-      border: 1px solid #cbd5e1;
-    }
-    .btn-dl:hover { background: #e2e8f0; }
-
-    .empty-state {
-      padding: 2.5rem 1rem;
-      text-align: center;
-      color: var(--muted);
-    }
-    .footer-note {
-      margin-top: 1rem;
-      font-size: 0.82rem;
-      color: var(--muted);
-      text-align: right;
     }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="header-inner">
-    <div>
-      <h1>Consulta de Certificados ISEM</h1>
-      <p>Mantenimiento y Supervisión S.A. &mdash; Verificación y descarga directa</p>
+  <!-- Navbar Superior -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="index.php">
+        <i class="bi bi-file-earmark-check-fill text-primary fs-4"></i>
+        <div>
+          <span class="d-block lh-1">Certificados ISEM</span>
+          <small class="text-white-50 fw-normal" style="font-size: 0.72rem;">Mantenimiento y Supervisión S.A.</small>
+        </div>
+      </a>
+
+      <div class="d-flex align-items-center gap-2 gap-md-3 ms-auto flex-wrap">
+        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-50 fw-normal py-2 px-3 rounded-pill d-none d-md-inline-flex align-items-center gap-1" id="badgeUpdate">
+          <i class="bi bi-clock-history"></i> Cargando base...
+        </span>
+
+        <div class="d-flex align-items-center gap-2 text-white small bg-white bg-opacity-10 px-3 py-1 rounded-pill">
+          <i class="bi bi-person-circle text-info"></i>
+          <span class="fw-medium text-truncate" style="max-width: 190px;"><?= htmlspecialchars($_SESSION['nombre']) ?></span>
+        </div>
+
+        <a href="logout.php" class="btn btn-danger btn-sm fw-semibold rounded-pill px-3">
+          <i class="bi bi-box-arrow-right me-1"></i>Salir
+        </a>
+      </div>
     </div>
-    <div class="badge-update" id="badgeUpdate">Cargando base...</div>
-    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-  <div class="badge-update" id="badgeUpdate">Cargando base...</div>
-      <span style="font-size:0.85rem; color:#cbd5e1;"><?= htmlspecialchars($_SESSION['nombre']) ?></span>
-      <a href="logout.php" style="background:#ef4444; color:#fff; padding:0.4rem 0.8rem; border-radius:6px; text-decoration:none; font-size:0.8rem; font-weight:600;">Salir</a>
-    </div>
-  </div>
-</header>
+  </nav>
 
-<main>
-  <section class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">Certificados Registrados</div>
-      <div class="stat-value" id="statCerts">-</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Trabajadores Habilitados</div>
-      <div class="stat-value" id="statWorkers">-</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Resultados Mostrados</div>
-      <div class="stat-value" id="statFiltered">-</div>
-    </div>
-  </section>
+  <main class="container py-4">
 
-  <section class="search-panel">
-    <div class="field">
-      <label for="searchInput">Buscar por DNI o Apellidos y Nombres</label>
-      <input type="text" id="searchInput" placeholder="Ej. 04207095 o ESPIRITU GONZALES..." autocomplete="off" />
-    </div>
-    <div class="field">
-      <label for="courseFilter">Filtrar por Capacitación</label>
-      <select id="courseFilter">
-        <option value="">Todas las capacitaciones</option>
-      </select>
-    </div>
-    <button class="btn-clear" id="btnClear" type="button">Limpiar filtros</button>
-  </section>
-
-  <div class="worker-banner" id="workerBanner">
-    <div>
-      <h2 id="workerName">TRABAJADOR</h2>
-      <span id="workerDni">DNI: -</span>
-    </div>
-    <span id="workerCount">0 certificados</span>
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>DNI</th>
-          <th>Apellidos y Nombres</th>
-          <th>Capacitación (Catálogo)</th>
-          <th>Fecha</th>
-          <th>Nota</th>
-          <th>Certificado PDF</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody">
-        <tr><td colspan="6" class="empty-state">Cargando registros...</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <div class="footer-note" id="limitNote"></div>
-</main>
-
-<script>
-  const BASE_URL = "https://systemsft.com/CERTIFICADOS%20ISEM/";
-  const MAX_ROWS_DEFAULT = 100;
-  let allRecords = [];
-
-  const searchInput = document.getElementById("searchInput");
-  const courseFilter = document.getElementById("courseFilter");
-  const btnClear = document.getElementById("btnClear");
-  const tableBody = document.getElementById("tableBody");
-  const workerBanner = document.getElementById("workerBanner");
-
-  function buildPdfUrl(dni, filename) {
-    return `${BASE_URL}${encodeURIComponent(dni)}/${encodeURIComponent(filename)}`;
-  }
-
-  function normalizeText(str) {
-    return (str || "")
-      .toString()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-  }
-
-  function populateCourses(records) {
-    const courses = [...new Set(records.map(r => r.t))].sort((a, b) => a.localeCompare(b));
-    courses.forEach(course => {
-      const opt = document.createElement("option");
-      opt.value = course;
-      opt.textContent = course;
-      courseFilter.appendChild(opt);
-    });
-  }
-
-  function renderTable() {
-    const rawQuery = searchInput.value.trim();
-    const query = normalizeText(rawQuery);
-    const selectedCourse = courseFilter.value;
-
-    const filtered = allRecords.filter(r => {
-      const matchCourse = !selectedCourse || r.t === selectedCourse;
-      if (!matchCourse) return false;
-      if (!query) return true;
-      return r.d.includes(query) || normalizeText(r.n).includes(query);
-    });
-
-    document.getElementById("statFiltered").textContent = filtered.length.toLocaleString("es-PE");
-
-    // Mostrar ficha destacada si coincide un trabajador único
-    const uniqueDnis = [...new Set(filtered.map(r => r.d))];
-    if (rawQuery.length >= 4 && uniqueDnis.length === 1 && filtered.length > 0) {
-      workerBanner.style.display = "flex";
-      document.getElementById("workerName").textContent = filtered[0].n;
-      document.getElementById("workerDni").textContent = `DNI: ${filtered[0].d}`;
-      document.getElementById("workerCount").textContent = `${filtered.length} certificado(s) encontrado(s)`;
-    } else {
-      workerBanner.style.display = "none";
-    }
-
-    if (filtered.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="6" class="empty-state">No se encontraron certificados con los criterios ingresados.</td></tr>`;
-      document.getElementById("limitNote").textContent = "";
-      return;
-    }
-
-    const isSearching = query.length > 0 || selectedCourse !== "";
-    const visibleRows = isSearching ? filtered : filtered.slice(0, MAX_ROWS_DEFAULT);
-
-    tableBody.innerHTML = visibleRows.map(r => {
-      const url = buildPdfUrl(r.d, r.a);
-      return `
-        <tr>
-          <td><span class="dni-tag">${r.d}</span></td>
-          <td><strong>${r.n}</strong></td>
-          <td>${r.t}</td>
-          <td style="white-space:nowrap;">${r.f}</td>
-          <td><span class="nota-badge">${r.p}</span></td>
-          <td>
-            <div class="actions">
-              <a class="btn-pdf btn-view" href="${url}" target="_blank" rel="noopener">Ver PDF</a>
-              <a class="btn-pdf btn-dl" href="${url}" download="${r.a}">Descargar</a>
+    <!-- Tarjetas de Estadísticas -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-uppercase text-muted fw-bold small">Certificados Registrados</div>
+              <div class="fs-3 fw-bold text-dark mt-1" id="statCerts">-</div>
             </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
+            <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3">
+              <i class="bi bi-award-fill fs-3"></i>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    if (!isSearching && filtered.length > MAX_ROWS_DEFAULT) {
-      document.getElementById("limitNote").textContent =
-        `Mostrando los primeros ${MAX_ROWS_DEFAULT} de ${filtered.length.toLocaleString("es-PE")} certificados. Usa el buscador por DNI o nombre para filtrar toda la base.`;
-    } else {
-      document.getElementById("limitNote").textContent = "";
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-uppercase text-muted fw-bold small">Trabajadores Habilitados</div>
+              <div class="fs-3 fw-bold text-dark mt-1" id="statWorkers">-</div>
+            </div>
+            <div class="bg-success bg-opacity-10 text-success rounded-3 p-3">
+              <i class="bi bi-people-fill fs-3"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-info border-4">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-uppercase text-muted fw-bold small">Resultados Mostrados</div>
+              <div class="fs-3 fw-bold text-dark mt-1" id="statFiltered">-</div>
+            </div>
+            <div class="bg-info bg-opacity-10 text-info rounded-3 p-3">
+              <i class="bi bi-funnel-fill fs-3"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel de Búsqueda y Filtros -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+      <div class="card-body p-3 p-md-4">
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-lg-6">
+            <label for="searchInput" class="form-label fw-semibold small text-secondary">
+              Buscar por DNI o Apellidos y Nombres
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control" id="searchInput" placeholder="Ej. 04207095 o ESPIRITU GONZALES..." autocomplete="off" />
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-4">
+            <label for="courseFilter" class="form-label fw-semibold small text-secondary">
+              Filtrar por Capacitación
+            </label>
+            <select class="form-select" id="courseFilter">
+              <option value="">Todas las capacitaciones</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-lg-2 d-grid">
+            <button class="btn btn-outline-secondary fw-semibold" id="btnClear" type="button">
+              <i class="bi bi-eraser-fill me-1"></i>Limpiar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner de Trabajador Único -->
+    <div class="alert alert-primary border-0 shadow-sm rounded-3 d-none align-items-center justify-content-between flex-wrap gap-2 mb-4" id="workerBanner" role="alert">
+      <div class="d-flex align-items-center gap-3">
+        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+          <i class="bi bi-person-vcard-fill fs-5"></i>
+        </div>
+        <div>
+          <h2 class="h6 fw-bold mb-0 text-dark" id="workerName">TRABAJADOR</h2>
+          <small class="text-primary fw-semibold" id="workerDni">DNI: -</small>
+        </div>
+      </div>
+      <span class="badge bg-primary rounded-pill px-3 py-2 fs-6" id="workerCount">0 certificados</span>
+    </div>
+
+    <!-- Tabla de Resultados -->
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light text-uppercase small text-secondary">
+            <tr>
+              <th class="ps-3">DNI</th>
+              <th>Apellidos y Nombres</th>
+              <th>Capacitación (Catálogo)</th>
+              <th>Fecha</th>
+              <th class="text-center">Nota</th>
+              <th class="text-end pe-3">Certificado PDF</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="small">
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                Cargando registros...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3 text-muted small flex-wrap gap-2">
+      <span id="limitNote"></span>
+      <span>Portal interno RRHH • MYS</span>
+    </div>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const BASE_URL = "https://systemsft.com/CERTIFICADOS%20ISEM/";
+    const MAX_ROWS_DEFAULT = 100;
+    let allRecords = [];
+
+    const searchInput = document.getElementById("searchInput");
+    const courseFilter = document.getElementById("courseFilter");
+    const btnClear = document.getElementById("btnClear");
+    const tableBody = document.getElementById("tableBody");
+    const workerBanner = document.getElementById("workerBanner");
+
+    function buildPdfUrl(dni, filename) {
+      return `${BASE_URL}${encodeURIComponent(dni)}/${encodeURIComponent(filename)}`;
     }
-  }
 
-  async function init() {
-    try {
-      const res = await fetch(`datos_protegidos.php?v=${Date.now()}`);
-      if (!res.ok) throw new Error("No se pudo cargar datos_isem.json");
-      const data = await res.json();
+    function normalizeText(str) {
+      return (str || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
 
-      allRecords = data.registros || [];
-      document.getElementById("badgeUpdate").textContent = `Actualizado: ${data.actualizado}`;
-      document.getElementById("statCerts").textContent = (data.total_certificados || allRecords.length).toLocaleString("es-PE");
-      document.getElementById("statWorkers").textContent = (data.total_trabajadores || 0).toLocaleString("es-PE");
+    function populateCourses(records) {
+      const courses = [...new Set(records.map(r => r.t))].sort((a, b) => a.localeCompare(b));
+      courses.forEach(course => {
+        const opt = document.createElement("option");
+        opt.value = course;
+        opt.textContent = course;
+        courseFilter.appendChild(opt);
+      });
+    }
 
-      populateCourses(allRecords);
+    function renderTable() {
+      const rawQuery = searchInput.value.trim();
+      const query = normalizeText(rawQuery);
+      const selectedCourse = courseFilter.value;
+
+      const filtered = allRecords.filter(r => {
+        const matchCourse = !selectedCourse || r.t === selectedCourse;
+        if (!matchCourse) return false;
+        if (!query) return true;
+        return r.d.includes(query) || normalizeText(r.n).includes(query);
+      });
+
+      document.getElementById("statFiltered").textContent = filtered.length.toLocaleString("es-PE");
+
+      // Banner destacado cuando coincide un único trabajador
+      const uniqueDnis = [...new Set(filtered.map(r => r.d))];
+      if (rawQuery.length >= 4 && uniqueDnis.length === 1 && filtered.length > 0) {
+        workerBanner.classList.remove("d-none");
+        workerBanner.classList.add("d-flex");
+        document.getElementById("workerName").textContent = filtered[0].n;
+        document.getElementById("workerDni").textContent = `DNI: ${filtered[0].d}`;
+        document.getElementById("workerCount").textContent = `${filtered.length} certificado(s)`;
+      } else {
+        workerBanner.classList.remove("d-flex");
+        workerBanner.classList.add("d-none");
+      }
+
+      if (filtered.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+              No se encontraron certificados con los criterios ingresados.
+            </td>
+          </tr>`;
+        document.getElementById("limitNote").textContent = "";
+        return;
+      }
+
+      const isSearching = query.length > 0 || selectedCourse !== "";
+      const visibleRows = isSearching ? filtered : filtered.slice(0, MAX_ROWS_DEFAULT);
+
+      tableBody.innerHTML = visibleRows.map(r => {
+        const url = buildPdfUrl(r.d, r.a);
+        return `
+          <tr>
+            <td class="ps-3">
+              <span class="badge bg-light text-dark border font-monospace fs-6">${r.d}</span>
+            </td>
+            <td class="fw-semibold text-dark">${r.n}</td>
+            <td>${r.t}</td>
+            <td class="text-nowrap text-secondary">${r.f}</td>
+            <td class="text-center">
+              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-bold">
+                ${r.p}
+              </span>
+            </td>
+            <td class="text-end pe-3 text-nowrap">
+              <div class="btn-group btn-group-sm" role="group">
+                <a class="btn btn-primary fw-medium" href="${url}" target="_blank" rel="noopener">
+                  <i class="bi bi-file-earmark-pdf-fill me-1"></i>Ver PDF
+                </a>
+                <a class="btn btn-outline-secondary fw-medium" href="${url}" download="${r.a}" title="Descargar PDF">
+                  <i class="bi bi-download"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      if (!isSearching && filtered.length > MAX_ROWS_DEFAULT) {
+        document.getElementById("limitNote").textContent =
+          `Mostrando los primeros ${MAX_ROWS_DEFAULT} de ${filtered.length.toLocaleString("es-PE")} certificados. Usa el buscador para filtrar toda la base.`;
+      } else {
+        document.getElementById("limitNote").textContent = "";
+      }
+    }
+
+    async function init() {
+      try {
+        const res = await fetch(`datos_protegidos.php?v=${Date.now()}`);
+        if (res.status === 403) {
+          window.location.href = "login.php";
+          return;
+        }
+        if (!res.ok) throw new Error("No se pudo cargar la base de certificados");
+        const data = await res.json();
+
+        allRecords = data.registros || [];
+        document.getElementById("badgeUpdate").innerHTML = `<i class="bi bi-clock-history"></i> Actualizado: ${data.actualizado}`;
+        document.getElementById("statCerts").textContent = (data.total_certificados || allRecords.length).toLocaleString("es-PE");
+        document.getElementById("statWorkers").textContent = (data.total_trabajadores || 0).toLocaleString("es-PE");
+
+        populateCourses(allRecords);
+        renderTable();
+      } catch (err) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-4 text-danger">
+              <i class="bi bi-exclamation-octagon-fill me-1"></i> Error: ${err.message}
+            </td>
+          </tr>`;
+      }
+    }
+
+    searchInput.addEventListener("input", renderTable);
+    courseFilter.addEventListener("change", renderTable);
+    btnClear.addEventListener("click", () => {
+      searchInput.value = "";
+      courseFilter.value = "";
       renderTable();
-    } catch (err) {
-      tableBody.innerHTML = `<tr><td colspan="6" class="empty-state">Error al cargar la base de datos: ${err.message}</td></tr>`;
-    }
-  }
+    });
 
-  searchInput.addEventListener("input", renderTable);
-  courseFilter.addEventListener("change", renderTable);
-  btnClear.addEventListener("click", () => {
-    searchInput.value = "";
-    courseFilter.value = "";
-    renderTable();
-  });
-
-  init();
-</script>
+    init();
+  </script>
 </body>
 </html>
