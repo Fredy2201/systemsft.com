@@ -14,15 +14,12 @@ if (!isset($_SESSION['usuario_dni'])) {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
-    body {
-      background-color: #f1f5f9;
-    }
-    .navbar-custom {
-      background-color: #0f172a;
-    }
-    .table > :not(caption) > * > * {
-      vertical-align: middle;
-    }
+    body { background-color: #f1f5f9; }
+    .navbar-custom { background-color: #0f172a; }
+    .table > :not(caption) > * > * { vertical-align: middle; }
+    .stat-card { cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important; }
+    .pdf-frame { width: 100%; height: 75vh; border: none; background: #1e293b; }
   </style>
 </head>
 <body>
@@ -39,7 +36,7 @@ if (!isset($_SESSION['usuario_dni'])) {
       </a>
 
       <div class="d-flex align-items-center gap-2 gap-md-3 ms-auto flex-wrap">
-        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-50 fw-normal py-2 px-3 rounded-pill d-none d-md-inline-flex align-items-center gap-1" id="badgeUpdate">
+        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-50 fw-normal py-2 px-3 rounded-pill d-none d-lg-inline-flex align-items-center gap-1" id="badgeUpdate">
           <i class="bi bi-clock-history"></i> Cargando base...
         </span>
 
@@ -59,74 +56,136 @@ if (!isset($_SESSION['usuario_dni'])) {
 
     <!-- Tarjetas de Estadísticas -->
     <div class="row g-3 mb-4">
-      <div class="col-12 col-md-4">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4">
-          <div class="card-body d-flex align-items-center justify-content-between">
+      <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4 stat-card" onclick="filtrarPorTarjeta('')">
+          <div class="card-body d-flex align-items-center justify-content-between p-3">
             <div>
-              <div class="text-uppercase text-muted fw-bold small">Certificados Registrados</div>
-              <div class="fs-3 fw-bold text-dark mt-1" id="statCerts">-</div>
+              <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Certificados Activos</div>
+              <div class="fs-3 fw-bold text-dark mt-1" id="statTotal">-</div>
+              <small class="text-muted" id="statWorkers">- trabajadores</small>
             </div>
-            <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3">
-              <i class="bi bi-award-fill fs-3"></i>
+            <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 p-md-3">
+              <i class="bi bi-award-fill fs-4"></i>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-md-4">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4">
-          <div class="card-body d-flex align-items-center justify-content-between">
+      <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4 stat-card" onclick="filtrarPorTarjeta('VIGENTE')">
+          <div class="card-body d-flex align-items-center justify-content-between p-3">
             <div>
-              <div class="text-uppercase text-muted fw-bold small">Trabajadores Habilitados</div>
-              <div class="fs-3 fw-bold text-dark mt-1" id="statWorkers">-</div>
+              <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Vigentes</div>
+              <div class="fs-3 fw-bold text-success mt-1" id="statVigentes">-</div>
+              <small class="text-muted">> 30 días restantes</small>
             </div>
-            <div class="bg-success bg-opacity-10 text-success rounded-3 p-3">
-              <i class="bi bi-people-fill fs-3"></i>
+            <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 p-md-3">
+              <i class="bi bi-check-circle-fill fs-4"></i>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-md-4">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-info border-4">
-          <div class="card-body d-flex align-items-center justify-content-between">
+      <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-warning border-4 stat-card" onclick="filtrarPorTarjeta('POR_VENCER')">
+          <div class="card-body d-flex align-items-center justify-content-between p-3">
             <div>
-              <div class="text-uppercase text-muted fw-bold small">Resultados Mostrados</div>
-              <div class="fs-3 fw-bold text-dark mt-1" id="statFiltered">-</div>
+              <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Por Vencer (≤30d)</div>
+              <div class="fs-3 fw-bold text-warning-emphasis mt-1" id="statPorVencer">-</div>
+              <small class="text-muted">Requieren revalidación</small>
             </div>
-            <div class="bg-info bg-opacity-10 text-info rounded-3 p-3">
-              <i class="bi bi-funnel-fill fs-3"></i>
+            <div class="bg-warning bg-opacity-10 text-warning-emphasis rounded-3 p-2 p-md-3">
+              <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-danger border-4 stat-card" onclick="filtrarPorTarjeta('VENCIDO')">
+          <div class="card-body d-flex align-items-center justify-content-between p-3">
+            <div>
+              <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Vencidos</div>
+              <div class="fs-3 fw-bold text-danger mt-1" id="statVencidos">-</div>
+              <small class="text-muted">Plazo expirado</small>
+            </div>
+            <div class="bg-danger bg-opacity-10 text-danger rounded-3 p-2 p-md-3">
+              <i class="bi bi-x-octagon-fill fs-4"></i>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Panel de Búsqueda y Filtros -->
+    <!-- Panel de Búsqueda, Filtros y Exportación -->
     <div class="card border-0 shadow-sm rounded-3 mb-4">
       <div class="card-body p-3 p-md-4">
         <div class="row g-3 align-items-end">
-          <div class="col-12 col-lg-6">
+          <div class="col-12 col-lg-4">
             <label for="searchInput" class="form-label fw-semibold small text-secondary">
               Buscar por DNI o Apellidos y Nombres
             </label>
             <div class="input-group">
               <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control" id="searchInput" placeholder="Ej. 04207095 o ESPIRITU GONZALES..." autocomplete="off" />
+              <input type="text" class="form-control" id="searchInput" placeholder="Ej. 04207095 o ESPIRITU..." autocomplete="off" />
             </div>
           </div>
 
-          <div class="col-12 col-lg-4">
+          <div class="col-12 col-md-6 col-lg-3">
             <label for="courseFilter" class="form-label fw-semibold small text-secondary">
-              Filtrar por Capacitación
+              Capacitación
             </label>
             <select class="form-select" id="courseFilter">
               <option value="">Todas las capacitaciones</option>
             </select>
           </div>
 
-          <div class="col-12 col-lg-2 d-grid">
-            <button class="btn btn-outline-secondary fw-semibold" id="btnClear" type="button">
+          <div class="col-6 col-md-3 col-lg-2">
+            <label for="statusFilter" class="form-label fw-semibold small text-secondary">
+              Estado Curso
+            </label>
+            <select class="form-select" id="statusFilter">
+              <option value="">Todos</option>
+              <option value="VIGENTE">Vigentes</option>
+              <option value="POR_VENCER">Por vencer (≤30d)</option>
+              <option value="VENCIDO">Vencidos</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-md-3 col-lg-3">
+            <label for="otFilter" class="form-label fw-semibold small text-secondary">
+              Orden de Trabajo (OT)
+            </label>
+            <select class="form-select" id="otFilter">
+              <option value="">Todas las OTs</option>
+            </select>
+          </div>
+        </div>
+
+        <hr class="my-3 text-muted opacity-25">
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div class="d-flex flex-wrap gap-3 gap-md-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="switchLatestOnly" checked>
+              <label class="form-check-label small fw-medium text-dark" for="switchLatestOnly">
+                Ocultar cursos antiguos ya revalidados
+              </label>
+            </div>
+
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="switchActiveWorkers">
+              <label class="form-check-label small fw-medium text-dark" for="switchActiveWorkers">
+                Solo personal vigente en Tareo (<code>VIGENCIA = SI</code>)
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-success btn-sm fw-semibold px-3" id="btnExportCsv" type="button">
+              <i class="bi bi-file-earmark-excel-fill me-1"></i>Exportar Excel (.csv)
+            </button>
+            <button class="btn btn-outline-secondary btn-sm fw-semibold px-3" id="btnClear" type="button">
               <i class="bi bi-eraser-fill me-1"></i>Limpiar
             </button>
           </div>
@@ -134,18 +193,35 @@ if (!isset($_SESSION['usuario_dni'])) {
       </div>
     </div>
 
-    <!-- Banner de Trabajador Único -->
-    <div class="alert alert-primary border-0 shadow-sm rounded-3 d-none align-items-center justify-content-between flex-wrap gap-2 mb-4" id="workerBanner" role="alert">
-      <div class="d-flex align-items-center gap-3">
-        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-          <i class="bi bi-person-vcard-fill fs-5"></i>
-        </div>
-        <div>
-          <h2 class="h6 fw-bold mb-0 text-dark" id="workerName">TRABAJADOR</h2>
-          <small class="text-primary fw-semibold" id="workerDni">DNI: -</small>
+    <!-- Ficha Integral del Trabajador (Cruce con Tabla4 + Descarga ZIP) -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 d-none border-start border-primary border-4" id="workerCard">
+      <div class="card-body p-3 p-md-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+          <div class="d-flex align-items-start gap-3">
+            <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+              <i class="bi bi-person-vcard-fill fs-4"></i>
+            </div>
+            <div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h2 class="h5 fw-bold mb-0 text-dark" id="workerName">TRABAJADOR</h2>
+                <span class="badge bg-dark font-monospace" id="workerDni">DNI: -</span>
+                <span id="workerVigenciaBadge"></span>
+              </div>
+              <div class="text-secondary small mt-1" id="workerJobInfo">
+                Cargando ficha laboral...
+              </div>
+              <div class="d-flex flex-wrap gap-3 small text-muted mt-2" id="workerExtraInfo"></div>
+            </div>
+          </div>
+
+          <div class="d-flex flex-column align-items-md-end gap-2">
+            <a href="#" id="btnDownloadZip" class="btn btn-dark btn-sm fw-semibold rounded-pill px-3 shadow-sm">
+              <i class="bi bi-file-earmark-zip-fill text-warning me-1"></i>Descargar todo (.zip)
+            </a>
+            <div class="d-flex gap-1 flex-wrap" id="workerBadges"></div>
+          </div>
         </div>
       </div>
-      <span class="badge bg-primary rounded-pill px-3 py-2 fs-6" id="workerCount">0 certificados</span>
     </div>
 
     <!-- Tabla de Resultados -->
@@ -155,16 +231,18 @@ if (!isset($_SESSION['usuario_dni'])) {
           <thead class="table-light text-uppercase small text-secondary">
             <tr>
               <th class="ps-3">DNI</th>
-              <th>Apellidos y Nombres</th>
+              <th>Apellidos y Nombres / Cargo</th>
               <th>Capacitación (Catálogo)</th>
-              <th>Fecha</th>
+              <th>Emisión</th>
+              <th>Vencimiento</th>
+              <th>Estado</th>
               <th class="text-center">Nota</th>
-              <th class="text-end pe-3">Certificado PDF</th>
+              <th class="text-end pe-3">Certificado</th>
             </tr>
           </thead>
           <tbody id="tableBody" class="small">
             <tr>
-              <td colspan="6" class="text-center py-5 text-muted">
+              <td colspan="8" class="text-center py-5 text-muted">
                 <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                 Cargando registros...
               </td>
@@ -176,22 +254,63 @@ if (!isset($_SESSION['usuario_dni'])) {
 
     <div class="d-flex justify-content-between align-items-center mt-3 text-muted small flex-wrap gap-2">
       <span id="limitNote"></span>
-      <span>Portal interno RRHH • MYS</span>
+      <span>Mostrando <strong id="statFiltered">0</strong> certificados</span>
     </div>
 
   </main>
+
+  <!-- Modal Visor de PDF Integrado -->
+  <div class="modal fade" id="pdfModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header bg-dark text-white py-2 px-3">
+          <div class="text-truncate pe-2">
+            <h6 class="modal-title mb-0 text-truncate" id="modalPdfTitle">Certificado PDF</h6>
+            <small class="text-white-50" id="modalPdfSubtitle">-</small>
+          </div>
+          <div class="d-flex align-items-center gap-2 ms-auto">
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-light" id="btnPrevPdf" title="Anterior">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <button type="button" class="btn btn-outline-light" id="btnNextPdf" title="Siguiente">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+            <a href="#" id="modalDownloadBtn" download class="btn btn-primary btn-sm fw-semibold">
+              <i class="bi bi-download me-1"></i>Descargar
+            </a>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+        </div>
+        <div class="modal-body p-0 bg-dark">
+          <iframe id="pdfIframe" class="pdf-frame" src=""></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const BASE_URL = "https://systemsft.com/CERTIFICADOS%20ISEM/";
     const MAX_ROWS_DEFAULT = 100;
-    let allRecords = [];
+
+    let rawRecords = [];
+    let personalMap = {};
+    let currentFiltered = [];
+    let currentModalIndex = -1;
 
     const searchInput = document.getElementById("searchInput");
     const courseFilter = document.getElementById("courseFilter");
+    const statusFilter = document.getElementById("statusFilter");
+    const otFilter = document.getElementById("otFilter");
+    const switchLatestOnly = document.getElementById("switchLatestOnly");
+    const switchActiveWorkers = document.getElementById("switchActiveWorkers");
     const btnClear = document.getElementById("btnClear");
+    const btnExportCsv = document.getElementById("btnExportCsv");
     const tableBody = document.getElementById("tableBody");
-    const workerBanner = document.getElementById("workerBanner");
+    const workerCard = document.getElementById("workerCard");
+    const pdfModal = new bootstrap.Modal(document.getElementById("pdfModal"));
 
     function buildPdfUrl(dni, filename) {
       return `${BASE_URL}${encodeURIComponent(dni)}/${encodeURIComponent(filename)}`;
@@ -205,7 +324,102 @@ if (!isset($_SESSION['usuario_dni'])) {
         .toLowerCase();
     }
 
-    function populateCourses(records) {
+    // Agrupa curso base + revalidación para detectar certificados ya renovados
+    function getCourseFamily(courseName) {
+      return normalizeText(courseName)
+        .replace(/\s*-\s*revalidacion/g, "")
+        .replace(/\s+revalidacion/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function parseFechaToTimestamp(fechaStr) {
+      if (!fechaStr) return 0;
+      const parts = fechaStr.split("-");
+      if (parts.length === 3) {
+        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])).getTime();
+      }
+      if (/^\d{4}$/.test(fechaStr)) {
+        return new Date(Number(fechaStr), 11, 31).getTime();
+      }
+      return 0;
+    }
+
+    function calcularEstado(vencIso) {
+      if (!vencIso) {
+        return { code: "SIN_FECHA", label: "Sin fecha", badgeClass: "bg-secondary-subtle text-secondary", dias: null };
+      }
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+
+      const [y, m, d] = vencIso.split("-").map(Number);
+      const vencDate = new Date(y, m - 1, d);
+      const diffDias = Math.round((vencDate - hoy) / (1000 * 60 * 60 * 24));
+
+      if (diffDias < 0) {
+        return {
+          code: "VENCIDO",
+          label: `Vencido (${Math.abs(diffDias)}d)`,
+          badgeClass: "bg-danger-subtle text-danger border border-danger-subtle",
+          dias: diffDias
+        };
+      }
+      if (diffDias <= 30) {
+        return {
+          code: "POR_VENCER",
+          label: diffDias === 0 ? "Vence hoy" : `Vence en ${diffDias}d`,
+          badgeClass: "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+          dias: diffDias
+        };
+      }
+      return {
+        code: "VIGENTE",
+        label: `Vigente (${diffDias}d)`,
+        badgeClass: "bg-success-subtle text-success border border-success-subtle",
+        dias: diffDias
+      };
+    }
+
+    // Devuelve solo el certificado más reciente por trabajador + familia de curso
+    function deduplicateRecords(records) {
+      const latestMap = new Map();
+      records.forEach(r => {
+        const key = `${r.d}|${r._family}`;
+        const existing = latestMap.get(key);
+        if (!existing || r._ts >= existing._ts) {
+          latestMap.set(key, r);
+        }
+      });
+      return Array.from(latestMap.values());
+    }
+
+    function getActiveBaseDataset() {
+      let base = switchLatestOnly.checked ? deduplicateRecords(rawRecords) : rawRecords;
+      if (switchActiveWorkers.checked) {
+        base = base.filter(r => (personalMap[r.d]?.vigencia || "") === "SI");
+      }
+      return base;
+    }
+
+    function updateKPIs(baseDataset) {
+      const vig = baseDataset.filter(r => r._estado.code === "VIGENTE").length;
+      const porV = baseDataset.filter(r => r._estado.code === "POR_VENCER").length;
+      const venc = baseDataset.filter(r => r._estado.code === "VENCIDO").length;
+      const workers = new Set(baseDataset.map(r => r.d)).size;
+
+      document.getElementById("statTotal").textContent = baseDataset.length.toLocaleString("es-PE");
+      document.getElementById("statWorkers").textContent = `${workers.toLocaleString("es-PE")} trabajadores`;
+      document.getElementById("statVigentes").textContent = vig.toLocaleString("es-PE");
+      document.getElementById("statPorVencer").textContent = porV.toLocaleString("es-PE");
+      document.getElementById("statVencidos").textContent = venc.toLocaleString("es-PE");
+    }
+
+    function filtrarPorTarjeta(estado) {
+      statusFilter.value = estado;
+      renderTable();
+    }
+
+    function populateFilters(records) {
       const courses = [...new Set(records.map(r => r.t))].sort((a, b) => a.localeCompare(b));
       courses.forEach(course => {
         const opt = document.createElement("option");
@@ -213,39 +427,137 @@ if (!isset($_SESSION['usuario_dni'])) {
         opt.textContent = course;
         courseFilter.appendChild(opt);
       });
+
+      const ots = [...new Set(Object.values(personalMap).map(p => p.ot).filter(ot => ot && ot !== "0"))].sort();
+      ots.forEach(ot => {
+        const opt = document.createElement("option");
+        opt.value = ot;
+        opt.textContent = `OT: ${ot}`;
+        otFilter.appendChild(opt);
+      });
+    }
+
+    function openPdfModal(index) {
+      if (index < 0 || index >= currentFiltered.length) return;
+      currentModalIndex = index;
+      const r = currentFiltered[index];
+      const url = buildPdfUrl(r.d, r.a);
+
+      document.getElementById("modalPdfTitle").textContent = `${r.n} (${r.d})`;
+      document.getElementById("modalPdfSubtitle").textContent = `${r.t} • Emitido: ${r.f} • Vence: ${r.v || "-"}`;
+      document.getElementById("pdfIframe").src = url;
+      document.getElementById("modalDownloadBtn").href = url;
+      document.getElementById("modalDownloadBtn").setAttribute("download", r.a);
+
+      document.getElementById("btnPrevPdf").disabled = index === 0;
+      document.getElementById("btnNextPdf").disabled = index === currentFiltered.length - 1;
+      pdfModal.show();
+    }
+
+    document.getElementById("btnPrevPdf").addEventListener("click", () => openPdfModal(currentModalIndex - 1));
+    document.getElementById("btnNextPdf").addEventListener("click", () => openPdfModal(currentModalIndex + 1));
+
+    function exportToCsv() {
+      if (currentFiltered.length === 0) {
+        alert("No hay registros filtrados para exportar.");
+        return;
+      }
+      const headers = ["DNI", "APELLIDOS Y NOMBRES", "CARGO", "OT", "VIGENCIA TAREO", "CAPACITACION", "EMISION", "VENCIMIENTO", "ESTADO", "NOTA"];
+      const rows = currentFiltered.map(r => {
+        const p = personalMap[r.d] || {};
+        return [
+          `"${r.d}"`,
+          `"${r.n.replace(/"/g, '""')}"`,
+          `"${(p.cargo || "").replace(/"/g, '""')}"`,
+          `"${p.ot || ""}"`,
+          `"${p.vigencia || ""}"`,
+          `"${r.t.replace(/"/g, '""')}"`,
+          `"${r.f}"`,
+          `"${r.v || ""}"`,
+          `"${r._estado.label}"`,
+          `"${r.p}"`
+        ].join(",");
+      });
+
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `REPORTE_ISEM_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
     }
 
     function renderTable() {
+      const baseDataset = getActiveBaseDataset();
+      updateKPIs(baseDataset);
+
       const rawQuery = searchInput.value.trim();
       const query = normalizeText(rawQuery);
       const selectedCourse = courseFilter.value;
+      const selectedStatus = statusFilter.value;
+      const selectedOt = otFilter.value;
 
-      const filtered = allRecords.filter(r => {
-        const matchCourse = !selectedCourse || r.t === selectedCourse;
-        if (!matchCourse) return false;
+      currentFiltered = baseDataset.filter(r => {
+        const p = personalMap[r.d] || {};
+        if (selectedCourse && r.t !== selectedCourse) return false;
+        if (selectedStatus && r._estado.code !== selectedStatus) return false;
+        if (selectedOt && (p.ot || "") !== selectedOt) return false;
         if (!query) return true;
         return r.d.includes(query) || normalizeText(r.n).includes(query);
       });
 
-      document.getElementById("statFiltered").textContent = filtered.length.toLocaleString("es-PE");
+      document.getElementById("statFiltered").textContent = currentFiltered.length.toLocaleString("es-PE");
 
-      // Banner destacado cuando coincide un único trabajador
-      const uniqueDnis = [...new Set(filtered.map(r => r.d))];
-      if (rawQuery.length >= 4 && uniqueDnis.length === 1 && filtered.length > 0) {
-        workerBanner.classList.remove("d-none");
-        workerBanner.classList.add("d-flex");
-        document.getElementById("workerName").textContent = filtered[0].n;
-        document.getElementById("workerDni").textContent = `DNI: ${filtered[0].d}`;
-        document.getElementById("workerCount").textContent = `${filtered.length} certificado(s)`;
+      // Ficha integral cuando coincide 1 solo trabajador
+      const uniqueDnis = [...new Set(currentFiltered.map(r => r.d))];
+      if (rawQuery.length >= 4 && uniqueDnis.length === 1 && currentFiltered.length > 0) {
+        const dni = currentFiltered[0].d;
+        const nombre = currentFiltered[0].n;
+        const p = personalMap[dni] || {};
+
+        workerCard.classList.remove("d-none");
+        document.getElementById("workerName").textContent = nombre;
+        document.getElementById("workerDni").textContent = `DNI: ${dni}`;
+
+        const vigBadge = document.getElementById("workerVigenciaBadge");
+        if (p.vigencia === "SI") {
+          vigBadge.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle">VIGENTE EN OBRA</span>`;
+        } else if (p.vigencia === "NO") {
+          vigBadge.innerHTML = `<span class="badge bg-secondary-subtle text-secondary border">CESADO / NO VIGENTE</span>`;
+        } else {
+          vigBadge.innerHTML = "";
+        }
+
+        document.getElementById("workerJobInfo").textContent = p.cargo
+          ? `${p.cargo}${p.especialidad ? " • " + p.especialidad : ""}${p.linea ? " (" + p.linea + ")" : ""}`
+          : "Sin datos adicionales en lista de Tareo";
+
+        const extras = [];
+        if (p.ot && p.ot !== "0") extras.push(`<span><i class="bi bi-briefcase-fill text-primary me-1"></i>OT: <strong>${p.ot}</strong></span>`);
+        if (p.celular) extras.push(`<span><i class="bi bi-telephone-fill text-success me-1"></i>Cel: <strong>${p.celular}</strong></span>`);
+        if (p.sangre) extras.push(`<span><i class="bi bi-droplet-fill text-danger me-1"></i>Grupo: <strong>${p.sangre}</strong></span>`);
+        document.getElementById("workerExtraInfo").innerHTML = extras.join("");
+
+        document.getElementById("btnDownloadZip").href =
+          `descargar_zip.php?dni=${encodeURIComponent(dni)}&nombre=${encodeURIComponent(nombre)}`;
+
+        const vig = currentFiltered.filter(x => x._estado.code === "VIGENTE").length;
+        const porV = currentFiltered.filter(x => x._estado.code === "POR_VENCER").length;
+        const venc = currentFiltered.filter(x => x._estado.code === "VENCIDO").length;
+
+        document.getElementById("workerBadges").innerHTML = `
+          <span class="badge bg-success rounded-pill px-2 py-1">${vig} Vigente(s)</span>
+          ${porV > 0 ? `<span class="badge bg-warning text-dark rounded-pill px-2 py-1">${porV} Por vencer</span>` : ""}
+          ${venc > 0 ? `<span class="badge bg-danger rounded-pill px-2 py-1">${venc} Vencido(s)</span>` : ""}
+        `;
       } else {
-        workerBanner.classList.remove("d-flex");
-        workerBanner.classList.add("d-none");
+        workerCard.classList.add("d-none");
       }
 
-      if (filtered.length === 0) {
+      if (currentFiltered.length === 0) {
         tableBody.innerHTML = `
           <tr>
-            <td colspan="6" class="text-center py-5 text-muted">
+            <td colspan="8" class="text-center py-5 text-muted">
               <i class="bi bi-inbox fs-3 d-block mb-2"></i>
               No se encontraron certificados con los criterios ingresados.
             </td>
@@ -254,29 +566,43 @@ if (!isset($_SESSION['usuario_dni'])) {
         return;
       }
 
-      const isSearching = query.length > 0 || selectedCourse !== "";
-      const visibleRows = isSearching ? filtered : filtered.slice(0, MAX_ROWS_DEFAULT);
+      const isSearching = query.length > 0 || selectedCourse !== "" || selectedStatus !== "" || selectedOt !== "";
+      const visibleRows = isSearching ? currentFiltered : currentFiltered.slice(0, MAX_ROWS_DEFAULT);
 
-      tableBody.innerHTML = visibleRows.map(r => {
+      tableBody.innerHTML = visibleRows.map((r, idx) => {
         const url = buildPdfUrl(r.d, r.a);
+        const est = r._estado;
+        const p = personalMap[r.d] || {};
         return `
           <tr>
             <td class="ps-3">
-              <span class="badge bg-light text-dark border font-monospace fs-6">${r.d}</span>
+              <span class="badge bg-light text-dark border font-monospace">${r.d}</span>
             </td>
-            <td class="fw-semibold text-dark">${r.n}</td>
-            <td>${r.t}</td>
+            <td>
+              <div class="fw-semibold text-dark">${r.n}</div>
+              <small class="text-muted">${p.cargo || ""}${p.ot && p.ot !== "0" ? " • OT " + p.ot : ""}</small>
+            </td>
+            <td>
+              <div>${r.t}</div>
+              <small class="text-muted">Duración: ${r.m} meses</small>
+            </td>
             <td class="text-nowrap text-secondary">${r.f}</td>
+            <td class="text-nowrap fw-medium text-dark">${r.v || "-"}</td>
+            <td class="text-nowrap">
+              <span class="badge ${est.badgeClass} rounded-pill px-2 py-1 fw-semibold">
+                ${est.label}
+              </span>
+            </td>
             <td class="text-center">
-              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-bold">
+              <span class="badge bg-light text-dark border rounded-pill px-2 py-1 fw-bold">
                 ${r.p}
               </span>
             </td>
             <td class="text-end pe-3 text-nowrap">
               <div class="btn-group btn-group-sm" role="group">
-                <a class="btn btn-primary fw-medium" href="${url}" target="_blank" rel="noopener">
-                  <i class="bi bi-file-earmark-pdf-fill me-1"></i>Ver PDF
-                </a>
+                <button type="button" class="btn btn-primary fw-medium" onclick="openPdfModal(${idx})" title="Vista rápida">
+                  <i class="bi bi-eye-fill me-1"></i>Ver
+                </button>
                 <a class="btn btn-outline-secondary fw-medium" href="${url}" download="${r.a}" title="Descargar PDF">
                   <i class="bi bi-download"></i>
                 </a>
@@ -286,9 +612,9 @@ if (!isset($_SESSION['usuario_dni'])) {
         `;
       }).join("");
 
-      if (!isSearching && filtered.length > MAX_ROWS_DEFAULT) {
+      if (!isSearching && currentFiltered.length > MAX_ROWS_DEFAULT) {
         document.getElementById("limitNote").textContent =
-          `Mostrando los primeros ${MAX_ROWS_DEFAULT} de ${filtered.length.toLocaleString("es-PE")} certificados. Usa el buscador para filtrar toda la base.`;
+          `Mostrando los primeros ${MAX_ROWS_DEFAULT} de ${currentFiltered.length.toLocaleString("es-PE")} certificados. Usa los filtros para consultar toda la base.`;
       } else {
         document.getElementById("limitNote").textContent = "";
       }
@@ -304,17 +630,22 @@ if (!isset($_SESSION['usuario_dni'])) {
         if (!res.ok) throw new Error("No se pudo cargar la base de certificados");
         const data = await res.json();
 
-        allRecords = data.registros || [];
-        document.getElementById("badgeUpdate").innerHTML = `<i class="bi bi-clock-history"></i> Actualizado: ${data.actualizado}`;
-        document.getElementById("statCerts").textContent = (data.total_certificados || allRecords.length).toLocaleString("es-PE");
-        document.getElementById("statWorkers").textContent = (data.total_trabajadores || 0).toLocaleString("es-PE");
+        personalMap = data.personal_map || {};
+        rawRecords = (data.registros || []).map(r => ({
+          ...r,
+          _estado: calcularEstado(r.vi),
+          _family: getCourseFamily(r.t),
+          _ts: parseFechaToTimestamp(r.f)
+        }));
 
-        populateCourses(allRecords);
+        document.getElementById("badgeUpdate").innerHTML = `<i class="bi bi-clock-history"></i> Actualizado: ${data.actualizado}`;
+
+        populateFilters(rawRecords);
         renderTable();
       } catch (err) {
         tableBody.innerHTML = `
           <tr>
-            <td colspan="6" class="text-center py-4 text-danger">
+            <td colspan="8" class="text-center py-4 text-danger">
               <i class="bi bi-exclamation-octagon-fill me-1"></i> Error: ${err.message}
             </td>
           </tr>`;
@@ -323,9 +654,19 @@ if (!isset($_SESSION['usuario_dni'])) {
 
     searchInput.addEventListener("input", renderTable);
     courseFilter.addEventListener("change", renderTable);
+    statusFilter.addEventListener("change", renderTable);
+    otFilter.addEventListener("change", renderTable);
+    switchLatestOnly.addEventListener("change", renderTable);
+    switchActiveWorkers.addEventListener("change", renderTable);
+    btnExportCsv.addEventListener("click", exportToCsv);
+
     btnClear.addEventListener("click", () => {
       searchInput.value = "";
       courseFilter.value = "";
+      statusFilter.value = "";
+      otFilter.value = "";
+      switchLatestOnly.checked = true;
+      switchActiveWorkers.checked = false;
       renderTable();
     });
 
