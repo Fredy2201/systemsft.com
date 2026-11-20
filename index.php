@@ -1,3 +1,11 @@
+<?php
+session_start();
+if (!isset($_SESSION['usuario_dni'])) {
+    header('Location: login.php');
+    exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -229,6 +237,11 @@
       <p>Mantenimiento y Supervisión S.A. &mdash; Verificación y descarga directa</p>
     </div>
     <div class="badge-update" id="badgeUpdate">Cargando base...</div>
+    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+  <div class="badge-update" id="badgeUpdate">Cargando base...</div>
+      <span style="font-size:0.85rem; color:#cbd5e1;"><?= htmlspecialchars($_SESSION['nombre']) ?></span>
+      <a href="logout.php" style="background:#ef4444; color:#fff; padding:0.4rem 0.8rem; border-radius:6px; text-decoration:none; font-size:0.8rem; font-weight:600;">Salir</a>
+    </div>
   </div>
 </header>
 
@@ -386,7 +399,7 @@
 
   async function init() {
     try {
-      const res = await fetch(`datos_isem.json?v=${Date.now()}`);
+      const res = await fetch(`datos_protegidos.php?v=${Date.now()}`);
       if (!res.ok) throw new Error("No se pudo cargar datos_isem.json");
       const data = await res.json();
 
