@@ -104,14 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label for="password" class="form-label fw-semibold small text-secondary">Contraseña</label>
           <div class="input-group">
             <span class="input-group-text bg-light"><i class="bi bi-key-fill text-secondary"></i></span>
-            <input type="password" class="form-control" id="password" name="password" placeholder="DNI + Primer Apellido" required />
+            <input type="password" class="form-control" id="password" name="password" placeholder="" required />
             <button class="btn btn-outline-secondary" type="button" id="togglePass" title="Mostrar/Ocultar">
               <i class="bi bi-eye" id="eyeIcon"></i>
             </button>
           </div>
-          <div class="form-text mt-1">
-            Formato: <strong>DNI + Primer Apellido</strong> sin espacios (ej. <code>76728017ALCEDO</code>).
-          </div>
+          
         </div>
 
         <button class="btn btn-primary w-100 py-2 fw-semibold rounded-3 shadow-sm" type="submit">
