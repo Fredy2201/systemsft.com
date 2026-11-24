@@ -362,11 +362,11 @@ if (!isset($_SESSION['usuario_dni'])) {
     function escapeHtmlAttr(str) {
       return (str || "")
         .toString()
-        .replace(/&/g, "&")
-        .replace(/"/g, """)
-        .replace(/'/g, "'")
-        .replace(/</g, "<")
-        .replace(/>/g, ">");
+        .replace(/\u0026/g, "\u0026amp;")
+        .replace(/\u0022/g, "\u0026quot;")
+        .replace(/\u0027/g, "\u0026#39;")
+        .replace(/\u003C/g, "\u0026lt;")
+        .replace(/\u003E/g, "\u0026gt;");
     }
 
     function handlePhotoError(imgEl, dni) {
