@@ -79,7 +79,7 @@ if (!isset($_SESSION['usuario_dni'])) {
             <div>
               <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Vigentes</div>
               <div class="fs-3 fw-bold text-success mt-1" id="statVigentes">-</div>
-              <small class="text-muted">> 30 días restantes</small>
+              <small class="text-muted">Más de 30 días restantes</small>
             </div>
             <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 p-md-3">
               <i class="bi bi-check-circle-fill fs-4"></i>
@@ -333,7 +333,7 @@ if (!isset($_SESSION['usuario_dni'])) {
     let personalMap = {};
     let currentFiltered = [];
     let currentModalIndex = -1;
-    const resolvedPhotoCache = {}; // Guarda la URL válida o null por DNI
+    const resolvedPhotoCache = {};
 
     const searchInput = document.getElementById("searchInput");
     const courseFilter = document.getElementById("courseFilter");
@@ -352,7 +352,16 @@ if (!isset($_SESSION['usuario_dni'])) {
       return `${BASE_URL}${encodeURIComponent(dni)}/${encodeURIComponent(filename)}`;
     }
 
-    // Maneja la carga progresiva de extensiones de imagen y caché por DNI
+    function escapeHtmlAttr(str) {
+      return (str || "")
+        .toString()
+        .replace(/&/g, "&")
+        .replace(/"/g, """)
+        .replace(/'/g, "'")
+        .replace(/</g, "<")
+        .replace(/>/g, ">");
+    }
+
     function handlePhotoError(imgEl, dni) {
       const idx = Number(imgEl.dataset.extIdx || 0) + 1;
       if (idx < PHOTO_EXTENSIONS.length) {
@@ -662,7 +671,7 @@ if (!isset($_SESSION['usuario_dni'])) {
         const p = personalMap[r.d] || {};
         const knownNoPhoto = resolvedPhotoCache[r.d] === null;
         const initialSrc = knownNoPhoto ? "" : getInitialPhotoSrc(r.d);
-        const safeNameAttr = r.n.replace(/"/g, """);
+        const safeNameAttr = escapeHtmlAttr(r.n);
 
         return `
           <tr>
@@ -673,10 +682,11 @@ if (!isset($_SESSION['usuario_dni'])) {
               <div class="d-flex align-items-center gap-2">
                 ${knownNoPhoto ? "" : `
                   <img src="${initialSrc}" data-ext-idx="0" alt=""
+                       data-dni="${r.d}" data-nombre="${safeNameAttr}"
                        class="rounded-circle border worker-avatar-sm flex-shrink-0 d-none"
-                       onload="handlePhotoLoad(this, '${r.d}')"
-                       onerror="handlePhotoError(this, '${r.d}')"
-                       onclick="openPhotoModal('${r.d}', '${safeNameAttr}', this.src)"
+                       onload="handlePhotoLoad(this, this.dataset.dni)"
+                       onerror="handlePhotoError(this, this.dataset.dni)"
+                       onclick="openPhotoModal(this.dataset.dni, this.dataset.nombre, this.src)"
                        title="Ver fotografía">
                 `}
                 <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center flex-shrink-0"
