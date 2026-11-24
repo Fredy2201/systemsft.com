@@ -20,6 +20,8 @@ if (!isset($_SESSION['usuario_dni'])) {
     .stat-card { cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
     .stat-card:hover { transform: translateY(-2px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important; }
     .pdf-frame { width: 100%; height: 75vh; border: none; background: #1e293b; }
+    .worker-avatar-sm { width: 36px; height: 36px; object-fit: cover; cursor: pointer; }
+    .worker-avatar-lg { width: 76px; height: 76px; object-fit: cover; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -193,14 +195,23 @@ if (!isset($_SESSION['usuario_dni'])) {
       </div>
     </div>
 
-    <!-- Ficha Integral del Trabajador (Cruce con Tabla4 + Descarga ZIP) -->
+    <!-- Ficha Integral del Trabajador (Cruce con Tabla4 + Fotografía + Descarga ZIP) -->
     <div class="card border-0 shadow-sm rounded-3 mb-4 d-none border-start border-primary border-4" id="workerCard">
       <div class="card-body p-3 p-md-4">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-          <div class="d-flex align-items-start gap-3">
-            <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
-              <i class="bi bi-person-vcard-fill fs-4"></i>
+          <div class="d-flex align-items-center gap-3">
+            <!-- Contenedor de Fotografía en Ficha -->
+            <div class="position-relative flex-shrink-0">
+              <img id="workerPhoto" src="" alt="Foto trabajador"
+                   class="rounded-3 border shadow-sm worker-avatar-lg d-none"
+                   title="Clic para ampliar fotografía">
+              <div id="workerPhotoFallback"
+                   class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-sm"
+                   style="width: 76px; height: 76px;">
+                <i class="bi bi-person-vcard-fill fs-2"></i>
+              </div>
             </div>
+
             <div>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <h2 class="h5 fw-bold mb-0 text-dark" id="workerName">TRABAJADOR</h2>
@@ -290,15 +301,39 @@ if (!isset($_SESSION['usuario_dni'])) {
     </div>
   </div>
 
+  <!-- Modal Visor de Fotografía -->
+  <div class="modal fade" id="photoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header bg-dark text-white py-2 px-3">
+          <h6 class="modal-title mb-0 text-truncate small" id="photoModalTitle">Fotografía</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-2 bg-light text-center">
+          <img id="photoModalImg" src="" alt="Fotografía ampliada" class="img-fluid rounded-3 shadow-sm">
+        </div>
+        <div class="modal-footer py-2 px-3 bg-white justify-content-between">
+          <small class="text-muted font-monospace" id="photoModalDni"></small>
+          <a id="photoModalDownload" href="#" download class="btn btn-primary btn-sm">
+            <i class="bi bi-download me-1"></i>Descargar
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const BASE_URL = "https://systemsft.com/CERTIFICADOS%20ISEM/";
+    const PHOTO_BASE_URL = "FOTOGRAFIAS/";
+    const PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "JPG", "JPEG", "PNG"];
     const MAX_ROWS_DEFAULT = 100;
 
     let rawRecords = [];
     let personalMap = {};
     let currentFiltered = [];
     let currentModalIndex = -1;
+    const resolvedPhotoCache = {}; // Guarda la URL válida o null por DNI
 
     const searchInput = document.getElementById("searchInput");
     const courseFilter = document.getElementById("courseFilter");
@@ -311,9 +346,47 @@ if (!isset($_SESSION['usuario_dni'])) {
     const tableBody = document.getElementById("tableBody");
     const workerCard = document.getElementById("workerCard");
     const pdfModal = new bootstrap.Modal(document.getElementById("pdfModal"));
+    const photoModal = new bootstrap.Modal(document.getElementById("photoModal"));
 
     function buildPdfUrl(dni, filename) {
       return `${BASE_URL}${encodeURIComponent(dni)}/${encodeURIComponent(filename)}`;
+    }
+
+    // Maneja la carga progresiva de extensiones de imagen y caché por DNI
+    function handlePhotoError(imgEl, dni) {
+      const idx = Number(imgEl.dataset.extIdx || 0) + 1;
+      if (idx < PHOTO_EXTENSIONS.length) {
+        imgEl.dataset.extIdx = idx;
+        imgEl.src = `${PHOTO_BASE_URL}${encodeURIComponent(dni)}.${PHOTO_EXTENSIONS[idx]}`;
+      } else {
+        resolvedPhotoCache[dni] = null;
+        imgEl.classList.add("d-none");
+        const fallback = imgEl.nextElementSibling;
+        if (fallback) fallback.classList.remove("d-none");
+      }
+    }
+
+    function handlePhotoLoad(imgEl, dni) {
+      resolvedPhotoCache[dni] = imgEl.src;
+      imgEl.classList.remove("d-none");
+      const fallback = imgEl.nextElementSibling;
+      if (fallback) fallback.classList.add("d-none");
+    }
+
+    function getInitialPhotoSrc(dni) {
+      if (resolvedPhotoCache[dni]) return resolvedPhotoCache[dni];
+      return `${PHOTO_BASE_URL}${encodeURIComponent(dni)}.${PHOTO_EXTENSIONS[0]}`;
+    }
+
+    function openPhotoModal(dni, nombre, imgSrc) {
+      if (!imgSrc) return;
+      document.getElementById("photoModalTitle").textContent = nombre;
+      document.getElementById("photoModalDni").textContent = `DNI: ${dni}`;
+      document.getElementById("photoModalImg").src = imgSrc;
+      const dlBtn = document.getElementById("photoModalDownload");
+      dlBtn.href = imgSrc;
+      dlBtn.setAttribute("download", `${dni}_${nombre.replace(/\s+/g, "_")}`);
+      photoModal.show();
     }
 
     function normalizeText(str) {
@@ -324,7 +397,6 @@ if (!isset($_SESSION['usuario_dni'])) {
         .toLowerCase();
     }
 
-    // Agrupa curso base + revalidación para detectar certificados ya renovados
     function getCourseFamily(courseName) {
       return normalizeText(courseName)
         .replace(/\s*-\s*revalidacion/g, "")
@@ -380,7 +452,6 @@ if (!isset($_SESSION['usuario_dni'])) {
       };
     }
 
-    // Devuelve solo el certificado más reciente por trabajador + familia de curso
     function deduplicateRecords(records) {
       const latestMap = new Map();
       records.forEach(r => {
@@ -519,6 +590,22 @@ if (!isset($_SESSION['usuario_dni'])) {
         document.getElementById("workerName").textContent = nombre;
         document.getElementById("workerDni").textContent = `DNI: ${dni}`;
 
+        // Configurar fotografía de la ficha
+        const photoEl = document.getElementById("workerPhoto");
+        const fallbackEl = document.getElementById("workerPhotoFallback");
+        if (resolvedPhotoCache[dni] === null) {
+          photoEl.classList.add("d-none");
+          fallbackEl.classList.remove("d-none");
+        } else {
+          photoEl.dataset.extIdx = "0";
+          photoEl.classList.add("d-none");
+          fallbackEl.classList.remove("d-none");
+          photoEl.onload = () => handlePhotoLoad(photoEl, dni);
+          photoEl.onerror = () => handlePhotoError(photoEl, dni);
+          photoEl.onclick = () => openPhotoModal(dni, nombre, photoEl.src);
+          photoEl.src = getInitialPhotoSrc(dni);
+        }
+
         const vigBadge = document.getElementById("workerVigenciaBadge");
         if (p.vigencia === "SI") {
           vigBadge.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle">VIGENTE EN OBRA</span>`;
@@ -573,14 +660,34 @@ if (!isset($_SESSION['usuario_dni'])) {
         const url = buildPdfUrl(r.d, r.a);
         const est = r._estado;
         const p = personalMap[r.d] || {};
+        const knownNoPhoto = resolvedPhotoCache[r.d] === null;
+        const initialSrc = knownNoPhoto ? "" : getInitialPhotoSrc(r.d);
+        const safeNameAttr = r.n.replace(/"/g, """);
+
         return `
           <tr>
             <td class="ps-3">
               <span class="badge bg-light text-dark border font-monospace">${r.d}</span>
             </td>
             <td>
-              <div class="fw-semibold text-dark">${r.n}</div>
-              <small class="text-muted">${p.cargo || ""}${p.ot && p.ot !== "0" ? " • OT " + p.ot : ""}</small>
+              <div class="d-flex align-items-center gap-2">
+                ${knownNoPhoto ? "" : `
+                  <img src="${initialSrc}" data-ext-idx="0" alt=""
+                       class="rounded-circle border worker-avatar-sm flex-shrink-0 d-none"
+                       onload="handlePhotoLoad(this, '${r.d}')"
+                       onerror="handlePhotoError(this, '${r.d}')"
+                       onclick="openPhotoModal('${r.d}', '${safeNameAttr}', this.src)"
+                       title="Ver fotografía">
+                `}
+                <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width: 36px; height: 36px;">
+                  <i class="bi bi-person-fill"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold text-dark">${r.n}</div>
+                  <small class="text-muted">${p.cargo || ""}${p.ot && p.ot !== "0" ? " • OT " + p.ot : ""}</small>
+                </div>
+              </div>
             </td>
             <td>
               <div>${r.t}</div>
