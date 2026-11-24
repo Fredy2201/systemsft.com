@@ -200,7 +200,6 @@ if (!isset($_SESSION['usuario_dni'])) {
       <div class="card-body p-3 p-md-4">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
           <div class="d-flex align-items-center gap-3">
-            <!-- Contenedor de Fotografía en Ficha -->
             <div class="position-relative flex-shrink-0">
               <img id="workerPhoto" src="" alt="Foto trabajador"
                    class="rounded-3 border shadow-sm worker-avatar-lg d-none"
@@ -253,9 +252,9 @@ if (!isset($_SESSION['usuario_dni'])) {
           </thead>
           <tbody id="tableBody" class="small">
             <tr>
-              <td colspan="8" class="text-center py-5 text-muted">
+              <td colspan="8" class="text-center py-5 text-muted" id="loadingCell">
                 <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                Cargando registros...
+                Conectando con datos_protegidos.php...
               </td>
             </tr>
           </tbody>
@@ -324,6 +323,16 @@ if (!isset($_SESSION['usuario_dni'])) {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Captura cualquier error inesperado de JS y lo muestra en la tabla
+    window.onerror = function (msg, url, line) {
+      const tb = document.getElementById("tableBody");
+      if (tb) {
+        tb.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">
+          <strong>Error JS (línea ${line}):</strong> ${msg}
+        </td></tr>`;
+      }
+    };
+
     const BASE_URL = "https://systemsft.com/CERTIFICADOS%20ISEM/";
     const PHOTO_BASE_URL = "FOTOGRAFIAS/";
     const PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "JPG", "JPEG", "PNG"];
@@ -345,8 +354,8 @@ if (!isset($_SESSION['usuario_dni'])) {
     const btnExportCsv = document.getElementById("btnExportCsv");
     const tableBody = document.getElementById("tableBody");
     const workerCard = document.getElementById("workerCard");
-    const pdfModal = new bootstrap.Modal(document.getElementById("pdfModal"));
-    const photoModal = new bootstrap.Modal(document.getElementById("photoModal"));
+    const pdfModal = typeof bootstrap !== "undefined" ? new bootstrap.Modal(document.getElementById("pdfModal")) : null;
+    const photoModal = typeof bootstrap !== "undefined" ? new bootstrap.Modal(document.getElementById("photoModal")) : null;
 
     function buildPdfUrl(dni, filename) {
       return `${BASE_URL}${encodeURIComponent(dni)}/${encodeURIComponent(filename)}`;
@@ -388,7 +397,7 @@ if (!isset($_SESSION['usuario_dni'])) {
     }
 
     function openPhotoModal(dni, nombre, imgSrc) {
-      if (!imgSrc) return;
+      if (!imgSrc || !photoModal) return;
       document.getElementById("photoModalTitle").textContent = nombre;
       document.getElementById("photoModalDni").textContent = `DNI: ${dni}`;
       document.getElementById("photoModalImg").src = imgSrc;
@@ -518,7 +527,7 @@ if (!isset($_SESSION['usuario_dni'])) {
     }
 
     function openPdfModal(index) {
-      if (index < 0 || index >= currentFiltered.length) return;
+      if (index < 0 || index >= currentFiltered.length || !pdfModal) return;
       currentModalIndex = index;
       const r = currentFiltered[index];
       const url = buildPdfUrl(r.d, r.a);
@@ -588,7 +597,6 @@ if (!isset($_SESSION['usuario_dni'])) {
 
       document.getElementById("statFiltered").textContent = currentFiltered.length.toLocaleString("es-PE");
 
-      // Ficha integral cuando coincide 1 solo trabajador
       const uniqueDnis = [...new Set(currentFiltered.map(r => r.d))];
       if (rawQuery.length >= 4 && uniqueDnis.length === 1 && currentFiltered.length > 0) {
         const dni = currentFiltered[0].d;
@@ -599,7 +607,6 @@ if (!isset($_SESSION['usuario_dni'])) {
         document.getElementById("workerName").textContent = nombre;
         document.getElementById("workerDni").textContent = `DNI: ${dni}`;
 
-        // Configurar fotografía de la ficha
         const photoEl = document.getElementById("workerPhoto");
         const fallbackEl = document.getElementById("workerPhotoFallback");
         if (resolvedPhotoCache[dni] === null) {
@@ -738,14 +745,33 @@ if (!isset($_SESSION['usuario_dni'])) {
     }
 
     async function init() {
+      const loadingCell = document.getElementById("loadingCell");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s máximo
+
       try {
-        const res = await fetch(`datos_protegidos.php?v=${Date.now()}`);
-        if (res.status === 403) {
+        const res = await fetch(`datos_protegidos.php?v=${Date.now()}`, {
+          credentials: "same-origin",
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.status === 403 || res.status === 401) {
           window.location.href = "login.php";
           return;
         }
-        if (!res.ok) throw new Error("No se pudo cargar la base de certificados");
-        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(`El servidor respondió HTTP ${res.status} (${res.statusText})`);
+        }
+
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (parseErr) {
+          const preview = rawText.replace(/<[^>]*>/g, " ").trim().slice(0, 180);
+          throw new Error(`datos_protegidos.php no devolvió JSON válido. Respuesta: "${preview || "(vacía)"}"`);
+        }
 
         personalMap = data.personal_map || {};
         rawRecords = (data.registros || []).map(r => ({
@@ -755,15 +781,19 @@ if (!isset($_SESSION['usuario_dni'])) {
           _ts: parseFechaToTimestamp(r.f)
         }));
 
-        document.getElementById("badgeUpdate").innerHTML = `<i class="bi bi-clock-history"></i> Actualizado: ${data.actualizado}`;
+        document.getElementById("badgeUpdate").innerHTML = `<i class="bi bi-clock-history"></i> Actualizado: ${data.actualizado || "OK"}`;
 
         populateFilters(rawRecords);
         renderTable();
       } catch (err) {
+        clearTimeout(timeoutId);
+        const msg = err.name === "AbortError"
+          ? "Tiempo de espera agotado (15s) al consultar datos_protegidos.php"
+          : err.message;
         tableBody.innerHTML = `
           <tr>
             <td colspan="8" class="text-center py-4 text-danger">
-              <i class="bi bi-exclamation-octagon-fill me-1"></i> Error: ${err.message}
+              <i class="bi bi-exclamation-octagon-fill me-1"></i> <strong>Detalle del fallo:</strong> ${msg}
             </td>
           </tr>`;
       }
