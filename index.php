@@ -123,7 +123,7 @@ if (!isset($_SESSION['usuario_dni'])) {
     <div class="card border-0 shadow-sm rounded-3 mb-4">
       <div class="card-body p-3 p-md-4">
         <div class="row g-3 align-items-end">
-          <div class="col-12 col-lg-4">
+          <div class="col-12 col-lg-5">
             <label for="searchInput" class="form-label fw-semibold small text-secondary">
               Buscar por DNI o Apellidos y Nombres
             </label>
@@ -133,7 +133,7 @@ if (!isset($_SESSION['usuario_dni'])) {
             </div>
           </div>
 
-          <div class="col-12 col-md-6 col-lg-3">
+          <div class="col-12 col-md-7 col-lg-4">
             <label for="courseFilter" class="form-label fw-semibold small text-secondary">
               Capacitación
             </label>
@@ -142,7 +142,7 @@ if (!isset($_SESSION['usuario_dni'])) {
             </select>
           </div>
 
-          <div class="col-6 col-md-3 col-lg-2">
+          <div class="col-12 col-md-5 col-lg-3">
             <label for="statusFilter" class="form-label fw-semibold small text-secondary">
               Estado Curso
             </label>
@@ -151,15 +151,6 @@ if (!isset($_SESSION['usuario_dni'])) {
               <option value="VIGENTE">Vigentes</option>
               <option value="POR_VENCER">Por vencer (≤30d)</option>
               <option value="VENCIDO">Vencidos</option>
-            </select>
-          </div>
-
-          <div class="col-6 col-md-3 col-lg-3">
-            <label for="otFilter" class="form-label fw-semibold small text-secondary">
-              Orden de Trabajo (OT)
-            </label>
-            <select class="form-select" id="otFilter">
-              <option value="">Todas las OTs</option>
             </select>
           </div>
         </div>
@@ -329,7 +320,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     const searchInput = document.getElementById("searchInput");
     const courseFilter = document.getElementById("courseFilter");
     const statusFilter = document.getElementById("statusFilter");
-    const otFilter = document.getElementById("otFilter");
     const switchLatestOnly = document.getElementById("switchLatestOnly");
     const switchActiveWorkers = document.getElementById("switchActiveWorkers");
     const btnClear = document.getElementById("btnClear");
@@ -504,14 +494,6 @@ if (!isset($_SESSION['usuario_dni'])) {
         opt.textContent = course;
         courseFilter.appendChild(opt);
       });
-
-      const ots = [...new Set(Object.values(personalMap).map(p => p.ot).filter(ot => ot && ot !== "0"))].sort();
-      ots.forEach(ot => {
-        const opt = document.createElement("option");
-        opt.value = ot;
-        opt.textContent = `OT: ${ot}`;
-        otFilter.appendChild(opt);
-      });
     }
 
     function openPdfModal(index) {
@@ -542,13 +524,10 @@ if (!isset($_SESSION['usuario_dni'])) {
       const query = normalizeText(rawQuery);
       const selectedCourse = courseFilter.value;
       const selectedStatus = statusFilter.value;
-      const selectedOt = otFilter.value;
 
       currentFiltered = baseDataset.filter(r => {
-        const p = personalMap[r.d] || {};
         if (selectedCourse && r.t !== selectedCourse) return false;
         if (selectedStatus && r._estado.code !== selectedStatus) return false;
-        if (selectedOt && (p.ot || "") !== selectedOt) return false;
         if (!query) return true;
         return r.d.includes(query) || normalizeText(r.n).includes(query);
       });
@@ -624,7 +603,7 @@ if (!isset($_SESSION['usuario_dni'])) {
         return;
       }
 
-      const isSearching = query.length > 0 || selectedCourse !== "" || selectedStatus !== "" || selectedOt !== "";
+      const isSearching = query.length > 0 || selectedCourse !== "" || selectedStatus !== "";
       const visibleRows = isSearching ? currentFiltered : currentFiltered.slice(0, MAX_ROWS_DEFAULT);
 
       tableBody.innerHTML = visibleRows.map((r, idx) => {
@@ -736,7 +715,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     searchInput.addEventListener("input", renderTable);
     courseFilter.addEventListener("change", renderTable);
     statusFilter.addEventListener("change", renderTable);
-    otFilter.addEventListener("change", renderTable);
     switchLatestOnly.addEventListener("change", renderTable);
     switchActiveWorkers.addEventListener("change", renderTable);
 
@@ -744,7 +722,6 @@ if (!isset($_SESSION['usuario_dni'])) {
       searchInput.value = "";
       courseFilter.value = "";
       statusFilter.value = "";
-      otFilter.value = "";
       switchLatestOnly.checked = true;
       switchActiveWorkers.checked = false;
       renderTable();
