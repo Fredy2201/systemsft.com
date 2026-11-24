@@ -119,7 +119,7 @@ if (!isset($_SESSION['usuario_dni'])) {
       </div>
     </div>
 
-    <!-- Panel de Búsqueda, Filtros y Exportación -->
+    <!-- Panel de Búsqueda y Filtros -->
     <div class="card border-0 shadow-sm rounded-3 mb-4">
       <div class="card-body p-3 p-md-4">
         <div class="row g-3 align-items-end">
@@ -184,9 +184,6 @@ if (!isset($_SESSION['usuario_dni'])) {
           </div>
 
           <div class="d-flex gap-2">
-            <button class="btn btn-success btn-sm fw-semibold px-3" id="btnExportCsv" type="button">
-              <i class="bi bi-file-earmark-excel-fill me-1"></i>Exportar Excel (.csv)
-            </button>
             <button class="btn btn-outline-secondary btn-sm fw-semibold px-3" id="btnClear" type="button">
               <i class="bi bi-eraser-fill me-1"></i>Limpiar
             </button>
@@ -195,10 +192,10 @@ if (!isset($_SESSION['usuario_dni'])) {
       </div>
     </div>
 
-    <!-- Ficha Integral del Trabajador (Cruce con Tabla4 + Fotografía + Descarga ZIP) -->
+    <!-- Ficha Integral del Trabajador (Cruce con Tabla4 + Fotografía) -->
     <div class="card border-0 shadow-sm rounded-3 mb-4 d-none border-start border-primary border-4" id="workerCard">
       <div class="card-body p-3 p-md-4">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
           <div class="d-flex align-items-center gap-3">
             <div class="position-relative flex-shrink-0">
               <img id="workerPhoto" src="" alt="Foto trabajador"
@@ -224,12 +221,7 @@ if (!isset($_SESSION['usuario_dni'])) {
             </div>
           </div>
 
-          <div class="d-flex flex-column align-items-md-end gap-2">
-            <a href="#" id="btnDownloadZip" class="btn btn-dark btn-sm fw-semibold rounded-pill px-3 shadow-sm">
-              <i class="bi bi-file-earmark-zip-fill text-warning me-1"></i>Descargar todo (.zip)
-            </a>
-            <div class="d-flex gap-1 flex-wrap" id="workerBadges"></div>
-          </div>
+          <div class="d-flex align-items-center gap-1 flex-wrap" id="workerBadges"></div>
         </div>
       </div>
     </div>
@@ -321,7 +313,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     </div>
   </div>
 
-  <!-- defer evita que la descarga del CDN bloquee la carga de la tabla -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
   <script>
     const BASE_URL = "https://systemsft.com/CERTIFICADOS%20ISEM/";
@@ -342,7 +333,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     const switchLatestOnly = document.getElementById("switchLatestOnly");
     const switchActiveWorkers = document.getElementById("switchActiveWorkers");
     const btnClear = document.getElementById("btnClear");
-    const btnExportCsv = document.getElementById("btnExportCsv");
     const tableBody = document.getElementById("tableBody");
     const workerCard = document.getElementById("workerCard");
 
@@ -544,36 +534,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     document.getElementById("btnPrevPdf").addEventListener("click", () => openPdfModal(currentModalIndex - 1));
     document.getElementById("btnNextPdf").addEventListener("click", () => openPdfModal(currentModalIndex + 1));
 
-    function exportToCsv() {
-      if (currentFiltered.length === 0) {
-        alert("No hay registros filtrados para exportar.");
-        return;
-      }
-      const headers = ["DNI", "APELLIDOS Y NOMBRES", "CARGO", "OT", "VIGENCIA TAREO", "CAPACITACION", "EMISION", "VENCIMIENTO", "ESTADO", "NOTA"];
-      const rows = currentFiltered.map(r => {
-        const p = personalMap[r.d] || {};
-        return [
-          `"${r.d}"`,
-          `"${r.n.replace(/"/g, '""')}"`,
-          `"${(p.cargo || "").replace(/"/g, '""')}"`,
-          `"${p.ot || ""}"`,
-          `"${p.vigencia || ""}"`,
-          `"${r.t.replace(/"/g, '""')}"`,
-          `"${r.f}"`,
-          `"${r.v || ""}"`,
-          `"${r._estado.label}"`,
-          `"${r.p}"`
-        ].join(",");
-      });
-
-      const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `REPORTE_ISEM_${new Date().toISOString().slice(0, 10)}.csv`;
-      link.click();
-    }
-
     function renderTable() {
       const baseDataset = getActiveBaseDataset();
       updateKPIs(baseDataset);
@@ -638,9 +598,6 @@ if (!isset($_SESSION['usuario_dni'])) {
         if (p.celular) extras.push(`<span><i class="bi bi-telephone-fill text-success me-1"></i>Cel: <strong>${p.celular}</strong></span>`);
         if (p.sangre) extras.push(`<span><i class="bi bi-droplet-fill text-danger me-1"></i>Grupo: <strong>${p.sangre}</strong></span>`);
         document.getElementById("workerExtraInfo").innerHTML = extras.join("");
-
-        document.getElementById("btnDownloadZip").href =
-          `descargar_zip.php?dni=${encodeURIComponent(dni)}&nombre=${encodeURIComponent(nombre)}`;
 
         const vig = currentFiltered.filter(x => x._estado.code === "VIGENTE").length;
         const porV = currentFiltered.filter(x => x._estado.code === "POR_VENCER").length;
@@ -782,7 +739,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     otFilter.addEventListener("change", renderTable);
     switchLatestOnly.addEventListener("change", renderTable);
     switchActiveWorkers.addEventListener("change", renderTable);
-    btnExportCsv.addEventListener("click", exportToCsv);
 
     btnClear.addEventListener("click", () => {
       searchInput.value = "";
