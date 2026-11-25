@@ -8,11 +8,10 @@ if (!isset($_SESSION['usuario_dni'])) {
     exit;
 }
 
-$SHAREPOINT_URL = 'https://myscia-my.sharepoint.com/:x:/g/personal/administrador_condorcocha_myssa_com_pe/IQBsIzBnnOJHRYCqpG7z8HcKAT9R7G3oksioxtTrSQuqZs8?e=4OpDKu&download=1';
+$SHAREPOINT_URL = 'https://myscia-my.sharepoint.com/:x:/g/personal/administrador_condorcocha_myssa_com_pe/IQBsIzBnnOJHRYCqpG7z8HcKAT9R7G3oksioxtTrSQuqZs8?e=2zSaqj&download=1';
 $CACHE_JSON     = __DIR__ . '/datos_industry.json';
 $TEMP_XLSX      = __DIR__ . '/temp_industry_sharepoint.xlsx';
 
-// Convierte serial numérico de Excel (ej. 46318) o texto a [dd-mm-yyyy, yyyy-mm-dd]
 function parseExcelDate($val) {
     $val = trim((string)$val);
     if ($val === '' || $val === '0') return ['', ''];
@@ -22,7 +21,6 @@ function parseExcelDate($val) {
         return [gmdate('d-m-Y', $unix), gmdate('Y-m-d', $unix)];
     }
 
-    // Formato dd/mm/yyyy o dd-mm-yyyy
     if (preg_match('/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/', $val, $m)) {
         $d = str_pad($m[1], 2, '0', STR_PAD_LEFT);
         $mo = str_pad($m[2], 2, '0', STR_PAD_LEFT);
@@ -33,7 +31,6 @@ function parseExcelDate($val) {
     return [$val, ''];
 }
 
-// Convierte letras de columna Excel (A, B, C...) a índice 0, 1, 2...
 function colLettersToIndex($letters) {
     $letters = strtoupper($letters);
     $num = 0;
@@ -43,7 +40,6 @@ function colLettersToIndex($letters) {
     return $num - 1;
 }
 
-// Lector ligero nativo de .xlsx (sin dependencias externas)
 function parseXlsxSheetCuadro($xlsxPath) {
     if (!class_exists('ZipArchive')) {
         throw new Exception('La extensión ZipArchive de PHP no está activa en el servidor.');
@@ -51,10 +47,9 @@ function parseXlsxSheetCuadro($xlsxPath) {
 
     $zip = new ZipArchive();
     if ($zip->open($xlsxPath) !== true) {
-        throw new Exception('El archivo descargado no es un Excel válido (verifique permisos del enlace SharePoint).');
+        throw new Exception('El archivo descargado no es un Excel válido.');
     }
 
-    // 1. Leer cadenas compartidas (sharedStrings.xml)
     $sharedStrings = [];
     $ssXml = $zip->getFromName('xl/sharedStrings.xml');
     if ($ssXml !== false) {
@@ -76,7 +71,6 @@ function parseXlsxSheetCuadro($xlsxPath) {
         }
     }
 
-    // 2. Ubicar la hoja "CUADRO" (o usar sheet1.xml por defecto)
     $targetSheetPath = 'xl/worksheets/sheet1.xml';
     $wbXml = $zip->getFromName('xl/workbook.xml');
     $relsXml = $zip->getFromName('xl/_rels/workbook.xml.rels');
@@ -112,7 +106,7 @@ function parseXlsxSheetCuadro($xlsxPath) {
 
     foreach ($sheetXml->sheetData->row as $row) {
         $rowNum = (int)$row['r'];
-        if ($rowNum < 3) continue; // Saltar título (fila 1) y encabezados (fila 2)
+        if ($rowNum < 3) continue;
 
         $cols = array_fill(0, 8, '');
         foreach ($row->c as $c) {
@@ -136,7 +130,6 @@ function parseXlsxSheetCuadro($xlsxPath) {
         $nombre = trim($cols[1]);
         $curso  = trim($cols[3]);
 
-        // Ignorar filas vacías o DNI = 0
         if ($dniRaw === '' || (int)$dniRaw === 0 || $nombre === '' || $curso === '') {
             continue;
         }
@@ -146,16 +139,16 @@ function parseXlsxSheetCuadro($xlsxPath) {
         [$fechaVenc, $fechaVencIso]       = parseExcelDate($cols[5]);
 
         $registros[] = [
-            'd'       => $dni,
-            'n'       => mb_strtoupper($nombre, 'UTF-8'),
-            'isem'    => $cols[2], // Col C: CAPACITACIONES ISEM
-            't'       => mb_strtoupper($curso, 'UTF-8'), // Col D: TIPO DE CAPACITACION
-            'f'       => $fechaEmision,
-            'fi'      => $fechaEmisionIso,
-            'v'       => $fechaVenc,
-            'vi'      => $fechaVencIso,
-            'empresa' => mb_strtoupper($cols[6], 'UTF-8'), // Col G: EMPRESA
-            'estado_excel' => mb_strtoupper($cols[7], 'UTF-8') // Col H: ESTADO (VIGENTE / RETIRADO)
+            'd'            => $dni,
+            'n'            => mb_strtoupper($nombre, 'UTF-8'),
+            'isem'         => $cols[2],
+            't'            => mb_strtoupper($curso, 'UTF-8'),
+            'f'            => $fechaEmision,
+            'fi'           => $fechaEmisionIso,
+            'v'            => $fechaVenc,
+            'vi'           => $fechaVencIso,
+            'empresa'      => mb_strtoupper($cols[6], 'UTF-8'),
+            'estado_excel' => mb_strtoupper($cols[7], 'UTF-8')
         ];
     }
 
@@ -163,40 +156,41 @@ function parseXlsxSheetCuadro($xlsxPath) {
 }
 
 function downloadFromSharePoint($url, $destPath) {
+    $cookieFile = __DIR__ . '/sp_cookies.txt';
     $ch = curl_init($url);
     $fp = fopen($destPath, 'wb');
     curl_setopt_array($ch, [
         CURLOPT_FILE           => $fp,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_MAXREDIRS      => 10,
+        CURLOPT_MAXREDIRS      => 15,
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        CURLOPT_COOKIEJAR      => $cookieFile,
+        CURLOPT_COOKIEFILE     => $cookieFile,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
     ]);
     $ok = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
     $err = curl_error($ch);
     curl_close($ch);
     fclose($fp);
+    @unlink($cookieFile);
 
     if (!$ok || $httpCode >= 400) {
         @unlink($destPath);
         throw new Exception("No se pudo descargar desde SharePoint (HTTP $httpCode $err).");
     }
 
-    // Verificar que no sea una página HTML de login de Microsoft
     $head = file_get_contents($destPath, false, null, 0, 4);
     if ($head !== "PK\x03\x04") {
         @unlink($destPath);
-        throw new Exception("SharePoint devolvió una pantalla de inicio de sesión en lugar del Excel. Asegúrese de que el vínculo tenga acceso público o suba el archivo manualmente.");
+        throw new Exception("SharePoint devolvió una pantalla de inicio de sesión. Verifique que el vínculo sea público ('Cualquier persona con el vínculo') o use 'Subir .xlsx'.");
     }
 }
 
 $action = $_GET['action'] ?? 'get';
 
 try {
-    // Opción A: Subida manual de respaldo (.xlsx)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         if ($_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) {
             throw new Exception('Error al subir el archivo Excel.');
@@ -216,7 +210,6 @@ try {
         exit;
     }
 
-    // Opción B: Sincronizar desde SharePoint (si se pide force=1 o aún no existe caché)
     $forceSync = ($action === 'sync') || !file_exists($CACHE_JSON);
 
     if ($forceSync) {
@@ -235,11 +228,9 @@ try {
         exit;
     }
 
-    // Opción C: Leer caché local rápida
     echo file_get_contents($CACHE_JSON);
 
 } catch (Exception $e) {
-    // Si falla la sincronización en vivo pero existe caché previa, devolverla con aviso
     if (file_exists($CACHE_JSON) && $action === 'sync') {
         $cached = json_decode(file_get_contents($CACHE_JSON), true);
         $cached['warning'] = $e->getMessage();
