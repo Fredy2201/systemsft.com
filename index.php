@@ -10,7 +10,7 @@ if (!isset($_SESSION['usuario_dni'])) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portal de Certificados ISEM | MYS</title>
+  <title>Portal de Certificados | MYS</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
@@ -25,29 +25,43 @@ if (!isset($_SESSION['usuario_dni'])) {
     .worker-avatar-lg { width: 84px; height: 84px; object-fit: cover; cursor: pointer; }
     .missing-course-card { border-left: 3px solid #94a3b8; background-color: #f8fafc; transition: all 0.15s ease; }
     .missing-course-card:hover { background-color: #ffffff; border-left-color: #0d6efd; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .nav-module-btn { border-radius: 999px; font-weight: 600; font-size: 0.85rem; padding: 0.4rem 1rem; transition: all 0.15s; }
+    .nav-module-btn.active { background-color: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.4); }
+    .nav-module-btn:not(.active) { color: #cbd5e1; background-color: rgba(255,255,255,0.07); }
+    .nav-module-btn:not(.active):hover { color: #fff; background-color: rgba(255,255,255,0.15); }
   </style>
 </head>
 <body>
 
-  <!-- Navbar Superior -->
+  <!-- Navbar Superior con Menú de Módulos -->
   <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm sticky-top">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="index.php" onclick="volverAlListado(); return false;">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="index.php" onclick="switchModule('isem'); volverAlListado(); return false;">
         <i class="bi bi-file-earmark-check-fill text-primary fs-4"></i>
         <div>
-          <span class="d-block lh-1">Certificados ISEM</span>
+          <span class="d-block lh-1">Portal Capacitaciones</span>
           <small class="text-white-50 fw-normal" style="font-size: 0.72rem;">Mantenimiento y Supervisión S.A.</small>
         </div>
       </a>
 
+      <!-- Menú de Navegación -->
+      <div class="d-flex align-items-center gap-2 my-2 my-lg-0 mx-lg-4">
+        <button type="button" class="btn btn-sm nav-module-btn active" id="navBtnIsem" onclick="switchModule('isem')">
+          <i class="bi bi-shield-check me-1"></i>Certificados ISEM
+        </button>
+        <button type="button" class="btn btn-sm nav-module-btn" id="navBtnIndustry" onclick="switchModule('industry')">
+          <i class="bi bi-award me-1"></i>Capacitaciones Industry / Admin
+        </button>
+      </div>
+
       <div class="d-flex align-items-center gap-2 gap-md-3 ms-auto flex-wrap">
-        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-50 fw-normal py-2 px-3 rounded-pill d-none d-lg-inline-flex align-items-center gap-1" id="badgeUpdate">
-          <i class="bi bi-clock-history"></i> Cargando base...
+        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-50 fw-normal py-2 px-3 rounded-pill d-none d-xl-inline-flex align-items-center gap-1" id="badgeUpdate">
+          <i class="bi bi-clock-history"></i> Cargando...
         </span>
 
         <div class="d-flex align-items-center gap-2 text-white small bg-white bg-opacity-10 px-3 py-1 rounded-pill">
           <i class="bi bi-person-circle text-info"></i>
-          <span class="fw-medium text-truncate" style="max-width: 190px;"><?= htmlspecialchars($_SESSION['nombre']) ?></span>
+          <span class="fw-medium text-truncate" style="max-width: 170px;"><?= htmlspecialchars($_SESSION['nombre']) ?></span>
         </div>
 
         <a href="logout.php" class="btn btn-danger btn-sm fw-semibold rounded-pill px-3">
@@ -60,33 +74,310 @@ if (!isset($_SESSION['usuario_dni'])) {
   <main class="container py-4">
 
     <!-- =================================================================== -->
-    <!-- VISTA 1: DIRECTORIO DE PERSONAL (BÚSQUEDA Y SELECCIÓN)              -->
+    <!-- MÓDULO 1: CERTIFICADOS ISEM (DIRECTORIO + FICHA + FALTANTES)        -->
     <!-- =================================================================== -->
-    <div id="directoryView">
+    <div id="moduleIsem">
 
-      <!-- Tarjetas de Estadísticas Globales -->
+      <!-- VISTA 1: DIRECTORIO DE PERSONAL -->
+      <div id="directoryView">
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4 stat-card" onclick="filtrarPorTarjeta('')">
+              <div class="card-body d-flex align-items-center justify-content-between p-3">
+                <div>
+                  <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Personal Evaluado</div>
+                  <div class="fs-3 fw-bold text-dark mt-1" id="statWorkers">-</div>
+                  <small class="text-muted" id="statTotal">- certificados activos</small>
+                </div>
+                <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 p-md-3">
+                  <i class="bi bi-people-fill fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4 stat-card" onclick="filtrarPorTarjeta('ALL_VIGENTE')">
+              <div class="card-body d-flex align-items-center justify-content-between p-3">
+                <div>
+                  <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Cursos Vigentes</div>
+                  <div class="fs-3 fw-bold text-success mt-1" id="statVigentes">-</div>
+                  <small class="text-muted">Más de 30 días restantes</small>
+                </div>
+                <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 p-md-3">
+                  <i class="bi bi-check-circle-fill fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-warning border-4 stat-card" onclick="filtrarPorTarjeta('HAS_POR_VENCER')">
+              <div class="card-body d-flex align-items-center justify-content-between p-3">
+                <div>
+                  <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Por Vencer (≤30d)</div>
+                  <div class="fs-3 fw-bold text-warning-emphasis mt-1" id="statPorVencer">-</div>
+                  <small class="text-muted">Clic para ver afectados</small>
+                </div>
+                <div class="bg-warning bg-opacity-10 text-warning-emphasis rounded-3 p-2 p-md-3">
+                  <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-danger border-4 stat-card" onclick="filtrarPorTarjeta('HAS_VENCIDO')">
+              <div class="card-body d-flex align-items-center justify-content-between p-3">
+                <div>
+                  <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Cursos Vencidos</div>
+                  <div class="fs-3 fw-bold text-danger mt-1" id="statVencidos">-</div>
+                  <small class="text-muted">Clic para ver afectados</small>
+                </div>
+                <div class="bg-danger bg-opacity-10 text-danger rounded-3 p-2 p-md-3">
+                  <i class="bi bi-x-octagon-fill fs-4"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel de Búsqueda de Personal -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+          <div class="card-body p-3 p-md-4">
+            <div class="row g-3 align-items-end">
+              <div class="col-12 col-lg-6">
+                <label for="searchInput" class="form-label fw-semibold small text-secondary">
+                  Buscar Trabajador por DNI, Apellidos o Cargo
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" class="form-control" id="searchInput" placeholder="Ej. 04207095, PAICO, SUPERVISOR..." autocomplete="off" />
+                </div>
+              </div>
+
+              <div class="col-12 col-md-8 col-lg-4">
+                <label for="workerStatusFilter" class="form-label fw-semibold small text-secondary">
+                  Filtrar Personal por Situación
+                </label>
+                <select class="form-select" id="workerStatusFilter">
+                  <option value="">Todos los trabajadores</option>
+                  <option value="ALL_VIGENTE">100% al día (Sin vencidos ni por vencer)</option>
+                  <option value="HAS_POR_VENCER">Con cursos por vencer (≤30d)</option>
+                  <option value="HAS_VENCIDO">Con cursos vencidos</option>
+                  <option value="HAS_MISSING">Con capacitaciones faltantes del catálogo</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-4 col-lg-2 d-grid">
+                <button class="btn btn-outline-secondary fw-semibold" id="btnClear" type="button">
+                  <i class="bi bi-eraser-fill me-1"></i>Limpiar
+                </button>
+              </div>
+            </div>
+
+            <hr class="my-3 text-muted opacity-25">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="switchActiveWorkers">
+                <label class="form-check-label small fw-medium text-dark" for="switchActiveWorkers">
+                  Mostrar solo personal vigente en Tareo (<code>VIGENCIA = SI</code>)
+                </label>
+              </div>
+              <small class="text-muted">
+                <i class="bi bi-hand-index-thumb me-1"></i>Haz clic sobre un trabajador para ver sus capacitaciones y cursos faltantes
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de Trabajadores -->
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light text-uppercase small text-secondary">
+                <tr>
+                  <th class="ps-3">DNI</th>
+                  <th>Trabajador / Cargo</th>
+                  <th class="text-center">Vigencia Tareo</th>
+                  <th>Estado de Capacitaciones</th>
+                  <th class="text-center">Cobertura Catálogo</th>
+                  <th class="text-end pe-3">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="workersTableBody" class="small">
+                <tr>
+                  <td colspan="6" class="text-center py-5 text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    Cargando directorio de personal...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 text-muted small flex-wrap gap-2">
+          <span id="catalogInfoNote"></span>
+          <span>Mostrando <strong id="statFilteredWorkers">0</strong> trabajadores</span>
+        </div>
+      </div>
+
+      <!-- VISTA 2: PERFIL INDIVIDUAL DEL TRABAJADOR -->
+      <div id="workerDetailView" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-dark btn-sm fw-semibold rounded-pill px-3" onclick="volverAlListado()">
+            <i class="bi bi-arrow-left me-1"></i>Volver al listado de personal
+          </button>
+
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="switchDetailLatestOnly" checked>
+            <label class="form-check-label small fw-medium text-dark" for="switchDetailLatestOnly">
+              Ocultar cursos antiguos ya revalidados
+            </label>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-primary border-4">
+          <div class="card-body p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="position-relative flex-shrink-0">
+                  <img id="detailPhoto" src="" alt="Foto trabajador"
+                       class="rounded-3 border shadow-sm worker-avatar-lg d-none"
+                       title="Clic para ampliar fotografía">
+                  <div id="detailPhotoFallback"
+                       class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-sm"
+                       style="width: 84px; height: 84px;">
+                    <i class="bi bi-person-vcard-fill fs-1"></i>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h2 class="h4 fw-bold mb-0 text-dark" id="detailName">TRABAJADOR</h2>
+                    <span class="badge bg-dark font-monospace fs-6" id="detailDni">DNI: -</span>
+                    <span id="detailVigenciaBadge"></span>
+                  </div>
+                  <div class="text-secondary mt-1 fw-medium" id="detailJobInfo">-</div>
+                  <div class="d-flex flex-wrap gap-3 small text-muted mt-2" id="detailExtraInfo"></div>
+                </div>
+              </div>
+
+              <div class="d-flex gap-2 flex-wrap" id="detailSummaryPills"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Capacitaciones Registradas -->
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+          <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-patch-check-fill text-success fs-5"></i>
+              <h5 class="mb-0 fw-bold text-dark fs-6">Capacitaciones Registradas (ISEM)</h5>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3" id="detailCompletedCount">
+              0 cursos
+            </span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light text-uppercase small text-secondary">
+                <tr>
+                  <th class="ps-3">Capacitación (Catálogo)</th>
+                  <th>Emisión</th>
+                  <th>Vencimiento</th>
+                  <th>Estado</th>
+                  <th class="text-center">Nota</th>
+                  <th class="text-end pe-3">Certificado</th>
+                </tr>
+              </thead>
+              <tbody id="detailCoursesBody" class="small"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Capacitaciones No Llevadas -->
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+          <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-exclamation-diamond-fill text-warning-emphasis fs-5"></i>
+              <div>
+                <h5 class="mb-0 fw-bold text-dark fs-6">Capacitaciones No Llevadas / Pendientes del Catálogo</h5>
+                <small class="text-muted">Comparado contra el catálogo general de cursos ISEM registrados en el sistema</small>
+              </div>
+            </div>
+            <span class="badge bg-secondary-subtle text-dark border rounded-pill px-3" id="detailMissingCount">
+              0 faltantes
+            </span>
+          </div>
+          <div class="card-body p-3 p-md-4" id="detailMissingContainer"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- MÓDULO 2: CAPACITACIONES INDUSTRY / ADMINISTRACIÓN (SHAREPOINT)     -->
+    <!-- =================================================================== -->
+    <div id="moduleIndustry" class="d-none">
+
+      <!-- Barra de Estado y Sincronización SharePoint -->
+      <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+        <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="bg-info bg-opacity-10 text-info-emphasis rounded-3 p-2 px-3">
+              <i class="bi bi-cloud-arrow-down-fill fs-4"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold text-dark fs-6">Lista de Capacitaciones - Administración / Industry</h5>
+              <small class="text-muted" id="indSyncStatus">Conectado a hoja CUADRO de SharePoint</small>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a href="https://myscia-my.sharepoint.com/:x:/g/personal/administrador_condorcocha_myssa_com_pe/IQBsIzBnnOJHRYCqpG7z8HcKAT9R7G3oksioxtTrSQuqZs8?e=4OpDKu"
+               target="_blank" class="btn btn-outline-secondary btn-sm fw-semibold">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Abrir SharePoint
+            </a>
+            <button type="button" class="btn btn-primary btn-sm fw-semibold" id="btnSyncSharePoint" onclick="loadIndustryData(true)">
+              <i class="bi bi-arrow-repeat me-1"></i>Sincronizar ahora
+            </button>
+            <label class="btn btn-outline-dark btn-sm fw-semibold mb-0" title="Subir archivo Excel manualmente si SharePoint bloquea la descarga directa">
+              <i class="bi bi-upload me-1"></i>Subir .xlsx
+              <input type="file" id="manualXlsxInput" accept=".xlsx" class="d-none">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerta de aviso si SharePoint pide login -->
+      <div class="alert alert-warning d-none shadow-sm border-0 rounded-3" id="indWarningBox"></div>
+
+      <!-- KPIs Industry -->
       <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
-          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4 stat-card" onclick="filtrarPorTarjeta('')">
+          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4 stat-card" onclick="filtrarIndustryTarjeta('')">
             <div class="card-body d-flex align-items-center justify-content-between p-3">
               <div>
-                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Personal Evaluado</div>
-                <div class="fs-3 fw-bold text-dark mt-1" id="statWorkers">-</div>
-                <small class="text-muted" id="statTotal">- certificados activos</small>
+                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Total Registros</div>
+                <div class="fs-3 fw-bold text-dark mt-1" id="indStatTotal">-</div>
+                <small class="text-muted" id="indStatWorkers">- trabajadores</small>
               </div>
               <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 p-md-3">
-                <i class="bi bi-people-fill fs-4"></i>
+                <i class="bi bi-journal-check fs-4"></i>
               </div>
             </div>
           </div>
         </div>
 
         <div class="col-6 col-lg-3">
-          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4 stat-card" onclick="filtrarPorTarjeta('ALL_VIGENTE')">
+          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4 stat-card" onclick="filtrarIndustryTarjeta('VIGENTE')">
             <div class="card-body d-flex align-items-center justify-content-between p-3">
               <div>
-                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Cursos Vigentes</div>
-                <div class="fs-3 fw-bold text-success mt-1" id="statVigentes">-</div>
+                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Vigentes</div>
+                <div class="fs-3 fw-bold text-success mt-1" id="indStatVigentes">-</div>
                 <small class="text-muted">Más de 30 días restantes</small>
               </div>
               <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 p-md-3">
@@ -97,12 +388,12 @@ if (!isset($_SESSION['usuario_dni'])) {
         </div>
 
         <div class="col-6 col-lg-3">
-          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-warning border-4 stat-card" onclick="filtrarPorTarjeta('HAS_POR_VENCER')">
+          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-warning border-4 stat-card" onclick="filtrarIndustryTarjeta('POR_VENCER')">
             <div class="card-body d-flex align-items-center justify-content-between p-3">
               <div>
                 <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Por Vencer (≤30d)</div>
-                <div class="fs-3 fw-bold text-warning-emphasis mt-1" id="statPorVencer">-</div>
-                <small class="text-muted">Clic para ver afectados</small>
+                <div class="fs-3 fw-bold text-warning-emphasis mt-1" id="indStatPorVencer">-</div>
+                <small class="text-muted">Próximos a caducar</small>
               </div>
               <div class="bg-warning bg-opacity-10 text-warning-emphasis rounded-3 p-2 p-md-3">
                 <i class="bi bi-exclamation-triangle-fill fs-4"></i>
@@ -112,12 +403,12 @@ if (!isset($_SESSION['usuario_dni'])) {
         </div>
 
         <div class="col-6 col-lg-3">
-          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-danger border-4 stat-card" onclick="filtrarPorTarjeta('HAS_VENCIDO')">
+          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-danger border-4 stat-card" onclick="filtrarIndustryTarjeta('VENCIDO')">
             <div class="card-body d-flex align-items-center justify-content-between p-3">
               <div>
-                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Cursos Vencidos</div>
-                <div class="fs-3 fw-bold text-danger mt-1" id="statVencidos">-</div>
-                <small class="text-muted">Clic para ver afectados</small>
+                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Vencidos</div>
+                <div class="fs-3 fw-bold text-danger mt-1" id="indStatVencidos">-</div>
+                <small class="text-muted">Plazo expirado</small>
               </div>
               <div class="bg-danger bg-opacity-10 text-danger rounded-3 p-2 p-md-3">
                 <i class="bi bi-x-octagon-fill fs-4"></i>
@@ -127,37 +418,48 @@ if (!isset($_SESSION['usuario_dni'])) {
         </div>
       </div>
 
-      <!-- Panel de Búsqueda de Personal -->
+      <!-- Filtros Industry -->
       <div class="card border-0 shadow-sm rounded-3 mb-4">
         <div class="card-body p-3 p-md-4">
           <div class="row g-3 align-items-end">
-            <div class="col-12 col-lg-6">
-              <label for="searchInput" class="form-label fw-semibold small text-secondary">
-                Buscar Trabajador por DNI, Apellidos o Cargo
+            <div class="col-12 col-lg-4">
+              <label for="indSearchInput" class="form-label fw-semibold small text-secondary">
+                Buscar por DNI o Apellidos y Nombres
               </label>
               <div class="input-group">
                 <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" class="form-control" id="searchInput" placeholder="Ej. 04207095, PAICO, SUPERVISOR..." autocomplete="off" />
+                <input type="text" class="form-control" id="indSearchInput" placeholder="Ej. 41775553 o ESPINOZA..." autocomplete="off">
               </div>
             </div>
 
-            <div class="col-12 col-md-8 col-lg-4">
-              <label for="workerStatusFilter" class="form-label fw-semibold small text-secondary">
-                Filtrar Personal por Situación
+            <div class="col-12 col-md-4 col-lg-3">
+              <label for="indCourseFilter" class="form-label fw-semibold small text-secondary">
+                Tipo de Capacitación
               </label>
-              <select class="form-select" id="workerStatusFilter">
-                <option value="">Todos los trabajadores</option>
-                <option value="ALL_VIGENTE">100% al día (Sin vencidos ni por vencer)</option>
-                <option value="HAS_POR_VENCER">Con cursos por vencer (≤30d)</option>
-                <option value="HAS_VENCIDO">Con cursos vencidos</option>
-                <option value="HAS_MISSING">Con capacitaciones faltantes del catálogo</option>
+              <select class="form-select" id="indCourseFilter">
+                <option value="">Todas las capacitaciones</option>
               </select>
             </div>
 
-            <div class="col-12 col-md-4 col-lg-2 d-grid">
-              <button class="btn btn-outline-secondary fw-semibold" id="btnClear" type="button">
-                <i class="bi bi-eraser-fill me-1"></i>Limpiar
-              </button>
+            <div class="col-6 col-md-4 col-lg-3">
+              <label for="indCompanyFilter" class="form-label fw-semibold small text-secondary">
+                Empresa Certificadora
+              </label>
+              <select class="form-select" id="indCompanyFilter">
+                <option value="">Todas las empresas</option>
+              </select>
+            </div>
+
+            <div class="col-6 col-md-4 col-lg-2">
+              <label for="indStatusFilter" class="form-label fw-semibold small text-secondary">
+                Vigencia Fecha
+              </label>
+              <select class="form-select" id="indStatusFilter">
+                <option value="">Todos</option>
+                <option value="VIGENTE">Vigentes</option>
+                <option value="POR_VENCER">Por vencer (≤30d)</option>
+                <option value="VENCIDO">Vencidos</option>
+              </select>
             </div>
           </div>
 
@@ -165,37 +467,40 @@ if (!isset($_SESSION['usuario_dni'])) {
 
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" role="switch" id="switchActiveWorkers">
-              <label class="form-check-label small fw-medium text-dark" for="switchActiveWorkers">
-                Mostrar solo personal vigente en Tareo (<code>VIGENCIA = SI</code>)
+              <input class="form-check-input" type="checkbox" role="switch" id="indOnlyActiveSwitch">
+              <label class="form-check-label small fw-medium text-dark" for="indOnlyActiveSwitch">
+                Ocultar personal <code>RETIRADO</code> en hoja Excel
               </label>
             </div>
-            <small class="text-muted">
-              <i class="bi bi-hand-index-thumb me-1"></i>Haz clic sobre un trabajador para ver sus capacitaciones y cursos faltantes
-            </small>
+
+            <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold px-3" id="indBtnClear">
+              <i class="bi bi-eraser-fill me-1"></i>Limpiar
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Tabla de Trabajadores -->
+      <!-- Tabla Industry -->
       <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light text-uppercase small text-secondary">
               <tr>
                 <th class="ps-3">DNI</th>
-                <th>Trabajador / Cargo</th>
-                <th class="text-center">Vigencia Tareo</th>
-                <th>Estado de Capacitaciones</th>
-                <th class="text-center">Cobertura Catálogo</th>
-                <th class="text-end pe-3">Acción</th>
+                <th>Apellidos y Nombres</th>
+                <th>Tipo de Capacitación (Industry)</th>
+                <th>Obs. ISEM</th>
+                <th>Empresa</th>
+                <th>Emisión</th>
+                <th>Vencimiento</th>
+                <th>Estado Fecha</th>
+                <th class="text-center pe-3">Condición</th>
               </tr>
             </thead>
-            <tbody id="workersTableBody" class="small">
+            <tbody id="indTableBody" class="small">
               <tr>
-                <td colspan="6" class="text-center py-5 text-muted">
-                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                  Cargando directorio de personal...
+                <td colspan="9" class="text-center py-5 text-muted">
+                  Selecciona esta pestaña para cargar las capacitaciones de SharePoint...
                 </td>
               </tr>
             </tbody>
@@ -203,110 +508,8 @@ if (!isset($_SESSION['usuario_dni'])) {
         </div>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mt-3 text-muted small flex-wrap gap-2">
-        <span id="catalogInfoNote"></span>
-        <span>Mostrando <strong id="statFilteredWorkers">0</strong> trabajadores</span>
-      </div>
-
-    </div>
-
-    <!-- =================================================================== -->
-    <!-- VISTA 2: PERFIL INDIVIDUAL DEL TRABAJADOR (CURSOS Y FALTANTES)      -->
-    <!-- =================================================================== -->
-    <div id="workerDetailView" class="d-none">
-
-      <!-- Barra Superior de Retorno -->
-      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <button type="button" class="btn btn-outline-dark btn-sm fw-semibold rounded-pill px-3" onclick="volverAlListado()">
-          <i class="bi bi-arrow-left me-1"></i>Volver al listado de personal
-        </button>
-
-        <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" role="switch" id="switchDetailLatestOnly" checked>
-          <label class="form-check-label small fw-medium text-dark" for="switchDetailLatestOnly">
-            Ocultar cursos antiguos ya revalidados
-          </label>
-        </div>
-      </div>
-
-      <!-- Tarjeta Cabecera del Trabajador -->
-      <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-primary border-4">
-        <div class="card-body p-3 p-md-4">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-flex align-items-center gap-3">
-              <div class="position-relative flex-shrink-0">
-                <img id="detailPhoto" src="" alt="Foto trabajador"
-                     class="rounded-3 border shadow-sm worker-avatar-lg d-none"
-                     title="Clic para ampliar fotografía">
-                <div id="detailPhotoFallback"
-                     class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-sm"
-                     style="width: 84px; height: 84px;">
-                  <i class="bi bi-person-vcard-fill fs-1"></i>
-                </div>
-              </div>
-
-              <div>
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                  <h2 class="h4 fw-bold mb-0 text-dark" id="detailName">TRABAJADOR</h2>
-                  <span class="badge bg-dark font-monospace fs-6" id="detailDni">DNI: -</span>
-                  <span id="detailVigenciaBadge"></span>
-                </div>
-                <div class="text-secondary mt-1 fw-medium" id="detailJobInfo">-</div>
-                <div class="d-flex flex-wrap gap-3 small text-muted mt-2" id="detailExtraInfo"></div>
-              </div>
-            </div>
-
-            <!-- Resumen numérico del trabajador -->
-            <div class="d-flex gap-2 flex-wrap" id="detailSummaryPills"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SECCIÓN A: CAPACITACIONES QUE SÍ TIENE -->
-      <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
-        <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-patch-check-fill text-success fs-5"></i>
-            <h5 class="mb-0 fw-bold text-dark fs-6">Capacitaciones Registradas</h5>
-          </div>
-          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3" id="detailCompletedCount">
-            0 cursos
-          </span>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light text-uppercase small text-secondary">
-              <tr>
-                <th class="ps-3">Capacitación (Catálogo)</th>
-                <th>Emisión</th>
-                <th>Vencimiento</th>
-                <th>Estado</th>
-                <th class="text-center">Nota</th>
-                <th class="text-end pe-3">Certificado</th>
-              </tr>
-            </thead>
-            <tbody id="detailCoursesBody" class="small"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- SECCIÓN B: CAPACITACIONES QUE NO TIENE (BRECHA VS CATÁLOGO ISEM) -->
-      <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-        <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-exclamation-diamond-fill text-warning-emphasis fs-5"></i>
-            <div>
-              <h5 class="mb-0 fw-bold text-dark fs-6">Capacitaciones No Llevadas / Pendientes del Catálogo</h5>
-              <small class="text-muted">Comparado contra el catálogo general de cursos ISEM registrados en el sistema</small>
-            </div>
-          </div>
-          <span class="badge bg-secondary-subtle text-dark border rounded-pill px-3" id="detailMissingCount">
-            0 faltantes
-          </span>
-        </div>
-        <div class="card-body p-3 p-md-4" id="detailMissingContainer">
-          <!-- Renderizado dinámico -->
-        </div>
+      <div class="d-flex justify-content-end mt-3 text-muted small">
+        <span>Mostrando <strong id="indStatFiltered">0</strong> registros</span>
       </div>
 
     </div>
@@ -373,12 +576,16 @@ if (!isset($_SESSION['usuario_dni'])) {
 
     let rawRecords = [];
     let personalMap = {};
-    let workersList = [];          // Lista agrupada por trabajador
-    let catalogFamilies = new Map(); // familyKey -> { label, sampleDuration }
+    let workersList = [];
+    let catalogFamilies = new Map();
     let selectedWorkerDni = null;
     let detailVisibleRecords = [];
     let currentModalIndex = -1;
     const resolvedPhotoCache = {};
+
+    // Variables Módulo Industry
+    let industryLoaded = false;
+    let industryRecords = [];
 
     const directoryView = document.getElementById("directoryView");
     const workerDetailView = document.getElementById("workerDetailView");
@@ -388,6 +595,31 @@ if (!isset($_SESSION['usuario_dni'])) {
     const switchDetailLatestOnly = document.getElementById("switchDetailLatestOnly");
     const btnClear = document.getElementById("btnClear");
     const workersTableBody = document.getElementById("workersTableBody");
+
+    // =========================================================================
+    // NAVEGACIÓN ENTRE MÓDULOS DEL MENÚ
+    // =========================================================================
+    function switchModule(moduleName) {
+      const modIsem = document.getElementById("moduleIsem");
+      const modInd  = document.getElementById("moduleIndustry");
+      const btnIsem = document.getElementById("navBtnIsem");
+      const btnInd  = document.getElementById("navBtnIndustry");
+
+      if (moduleName === "industry") {
+        modIsem.classList.add("d-none");
+        modInd.classList.remove("d-none");
+        btnIsem.classList.remove("active");
+        btnInd.classList.add("active");
+        if (!industryLoaded) {
+          loadIndustryData(false);
+        }
+      } else {
+        modInd.classList.add("d-none");
+        modIsem.classList.remove("d-none");
+        btnInd.classList.remove("active");
+        btnIsem.classList.add("active");
+      }
+    }
 
     function showModalSafe(modalId, fallbackUrl) {
       const el = document.getElementById(modalId);
@@ -531,7 +763,9 @@ if (!isset($_SESSION['usuario_dni'])) {
       return Array.from(latestMap.values());
     }
 
-    // Construye el catálogo maestro de capacitaciones y agrupa los datos por trabajador
+    // =========================================================================
+    // LÓGICA MÓDULO 1: ISEM
+    // =========================================================================
     function buildWorkersAndCatalog() {
       catalogFamilies.clear();
       rawRecords.forEach(r => {
@@ -605,11 +839,7 @@ if (!isset($_SESSION['usuario_dni'])) {
     }
 
     function updateDirectoryKPIs(filteredWorkers) {
-      let totalCerts = 0;
-      let totalVig = 0;
-      let totalPorV = 0;
-      let totalVenc = 0;
-
+      let totalCerts = 0, totalVig = 0, totalPorV = 0, totalVenc = 0;
       filteredWorkers.forEach(w => {
         totalCerts += w.latestCourses.length;
         totalVig += w.vigentesCount;
@@ -746,7 +976,6 @@ if (!isset($_SESSION['usuario_dni'])) {
       workerDetailView.classList.remove("d-none");
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Cabecera del trabajador
       document.getElementById("detailName").textContent = worker.nombre;
       document.getElementById("detailDni").textContent = `DNI: ${worker.dni}`;
 
@@ -803,7 +1032,6 @@ if (!isset($_SESSION['usuario_dni'])) {
         ? [...worker.latestCourses]
         : [...worker.allCourses];
 
-      // Ordenar: primero vencidos, luego por vencer, luego vigentes
       const priority = { VENCIDO: 1, POR_VENCER: 2, VIGENTE: 3, SIN_FECHA: 4 };
       detailVisibleRecords.sort((a, b) => (priority[a._estado.code] || 9) - (priority[b._estado.code] || 9));
 
@@ -811,10 +1039,7 @@ if (!isset($_SESSION['usuario_dni'])) {
 
       const tbody = document.getElementById("detailCoursesBody");
       if (detailVisibleRecords.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="text-center py-4 text-muted">Este trabajador no tiene capacitaciones registradas.</td>
-          </tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Sin capacitaciones registradas.</td></tr>`;
         return;
       }
 
@@ -830,14 +1055,10 @@ if (!isset($_SESSION['usuario_dni'])) {
             <td class="text-nowrap text-secondary">${r.f}</td>
             <td class="text-nowrap fw-medium text-dark">${r.v || "-"}</td>
             <td class="text-nowrap">
-              <span class="badge ${est.badgeClass} rounded-pill px-2 py-1 fw-semibold">
-                ${est.label}
-              </span>
+              <span class="badge ${est.badgeClass} rounded-pill px-2 py-1 fw-semibold">${est.label}</span>
             </td>
             <td class="text-center">
-              <span class="badge bg-light text-dark border rounded-pill px-2 py-1 fw-bold">
-                ${r.p}
-              </span>
+              <span class="badge bg-light text-dark border rounded-pill px-2 py-1 fw-bold">${r.p}</span>
             </td>
             <td class="text-end pe-3 text-nowrap">
               <div class="btn-group btn-group-sm" role="group">
@@ -857,7 +1078,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     function renderWorkerMissingCourses(worker) {
       const container = document.getElementById("detailMissingContainer");
       const missing = worker.missingCourses;
-
       document.getElementById("detailMissingCount").textContent = `${missing.length} faltante(s)`;
 
       if (missing.length === 0) {
@@ -915,6 +1135,181 @@ if (!isset($_SESSION['usuario_dni'])) {
     document.getElementById("btnPrevPdf").addEventListener("click", () => openPdfModal(currentModalIndex - 1));
     document.getElementById("btnNextPdf").addEventListener("click", () => openPdfModal(currentModalIndex + 1));
 
+    // =========================================================================
+    // LÓGICA MÓDULO 2: CAPACITACIONES INDUSTRY / ADMIN (SHAREPOINT)
+    // =========================================================================
+    async function loadIndustryData(forceSync = false) {
+      const btnSync = document.getElementById("btnSyncSharePoint");
+      const statusEl = document.getElementById("indSyncStatus");
+      const warnBox = document.getElementById("indWarningBox");
+      const tbody = document.getElementById("indTableBody");
+
+      btnSync.disabled = true;
+      btnSync.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Sincronizando...`;
+      warnBox.classList.add("d-none");
+
+      if (!industryLoaded) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted">
+          <div class="spinner-border spinner-border-sm text-primary me-2"></div>Descargando datos desde SharePoint...
+        </td></tr>`;
+      }
+
+      try {
+        const action = forceSync ? "sync" : "get";
+        const res = await fetch(`sync_sharepoint.php?action=${action}&v=${Date.now()}`, { credentials: "same-origin" });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+
+        if (data.warning) {
+          warnBox.textContent = `Aviso de sincronización: ${data.warning} (Mostrando última copia guardada).`;
+          warnBox.classList.remove("d-none");
+        }
+
+        industryRecords = (data.registros || []).map(r => ({
+          ...r,
+          _estado: calcularEstado(r.vi)
+        }));
+
+        industryLoaded = true;
+        statusEl.textContent = `Actualizado: ${data.actualizado} (${data.fuente}) • ${industryRecords.length} registros`;
+
+        populateIndustryFilters(industryRecords);
+        renderIndustryTable();
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">
+          <i class="bi bi-exclamation-octagon-fill me-1"></i> ${err.message}
+        </td></tr>`;
+      } finally {
+        btnSync.disabled = false;
+        btnSync.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i>Sincronizar ahora`;
+      }
+    }
+
+    function populateIndustryFilters(records) {
+      const courseSel = document.getElementById("indCourseFilter");
+      const compSel   = document.getElementById("indCompanyFilter");
+      courseSel.innerHTML = `<option value="">Todas las capacitaciones</option>`;
+      compSel.innerHTML   = `<option value="">Todas las empresas</option>`;
+
+      [...new Set(records.map(r => r.t))].sort().forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        courseSel.appendChild(opt);
+      });
+
+      [...new Set(records.map(r => r.empresa).filter(Boolean))].sort().forEach(e => {
+        const opt = document.createElement("option");
+        opt.value = e;
+        opt.textContent = e;
+        compSel.appendChild(opt);
+      });
+    }
+
+    function filtrarIndustryTarjeta(estado) {
+      document.getElementById("indStatusFilter").value = estado;
+      renderIndustryTable();
+    }
+
+    function renderIndustryTable() {
+      const query = normalizeText(document.getElementById("indSearchInput").value.trim());
+      const courseF = document.getElementById("indCourseFilter").value;
+      const compF   = document.getElementById("indCompanyFilter").value;
+      const statusF = document.getElementById("indStatusFilter").value;
+      const hideRet = document.getElementById("indOnlyActiveSwitch").checked;
+
+      const base = hideRet
+        ? industryRecords.filter(r => r.estado_excel !== "RETIRADO")
+        : industryRecords;
+
+      // Actualizar KPIs
+      document.getElementById("indStatTotal").textContent = base.length.toLocaleString("es-PE");
+      document.getElementById("indStatWorkers").textContent = `${new Set(base.map(r => r.d)).size} trabajadores`;
+      document.getElementById("indStatVigentes").textContent = base.filter(r => r._estado.code === "VIGENTE").length.toLocaleString("es-PE");
+      document.getElementById("indStatPorVencer").textContent = base.filter(r => r._estado.code === "POR_VENCER").length.toLocaleString("es-PE");
+      document.getElementById("indStatVencidos").textContent = base.filter(r => r._estado.code === "VENCIDO").length.toLocaleString("es-PE");
+
+      const filtered = base.filter(r => {
+        if (courseF && r.t !== courseF) return false;
+        if (compF && r.empresa !== compF) return false;
+        if (statusF && r._estado.code !== statusF) return false;
+        if (!query) return true;
+        return r.d.includes(query) || normalizeText(r.n).includes(query);
+      });
+
+      document.getElementById("indStatFiltered").textContent = filtered.length.toLocaleString("es-PE");
+      const tbody = document.getElementById("indTableBody");
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted">No se encontraron registros con los filtros aplicados.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => {
+        const est = r._estado;
+        const condBadge = r.estado_excel === "VIGENTE"
+          ? `<span class="badge bg-success-subtle text-success border border-success-subtle">VIGENTE</span>`
+          : (r.estado_excel === "RETIRADO"
+              ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle">RETIRADO</span>`
+              : `<span class="badge bg-light text-secondary border">${r.estado_excel || "-"}</span>`);
+
+        return `
+          <tr>
+            <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">${r.d}</span></td>
+            <td class="fw-semibold text-dark">${r.n}</td>
+            <td class="fw-medium text-primary-emphasis">${r.t}</td>
+            <td>${r.isem ? `<span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">${r.isem}</span>` : `<span class="text-muted">-</span>`}</td>
+            <td class="small text-secondary">${r.empresa || "-"}</td>
+            <td class="text-nowrap text-secondary">${r.f || "-"}</td>
+            <td class="text-nowrap fw-medium text-dark">${r.v || "-"}</td>
+            <td class="text-nowrap"><span class="badge ${est.badgeClass} rounded-pill px-2 py-1 fw-semibold">${est.label}</span></td>
+            <td class="text-center pe-3 text-nowrap">${condBadge}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // Subida manual de respaldo .xlsx
+    document.getElementById("manualXlsxInput").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("excel_file", file);
+
+      const btnSync = document.getElementById("btnSyncSharePoint");
+      btnSync.disabled = true;
+      btnSync.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Procesando Excel...`;
+
+      try {
+        const res = await fetch("sync_sharepoint.php", {
+          method: "POST",
+          body: formData,
+          credentials: "same-origin"
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Error al procesar Excel");
+
+        industryRecords = (data.registros || []).map(r => ({ ...r, _estado: calcularEstado(r.vi) }));
+        industryLoaded = true;
+        document.getElementById("indSyncStatus").textContent = `Actualizado: ${data.actualizado} (${data.fuente}) • ${industryRecords.length} registros`;
+        document.getElementById("indWarningBox").classList.add("d-none");
+        populateIndustryFilters(industryRecords);
+        renderIndustryTable();
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btnSync.disabled = false;
+        btnSync.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i>Sincronizar ahora`;
+        e.target.value = "";
+      }
+    });
+
+    // =========================================================================
+    // INICIALIZACIÓN GLOBAL
+    // =========================================================================
     async function init() {
       try {
         const res = await fetch(`datos_protegidos.php?v=${Date.now()}`, {
@@ -959,6 +1354,20 @@ if (!isset($_SESSION['usuario_dni'])) {
       workerStatusFilter.value = "";
       switchActiveWorkers.checked = false;
       renderWorkersDirectory();
+    });
+
+    document.getElementById("indSearchInput").addEventListener("input", renderIndustryTable);
+    document.getElementById("indCourseFilter").addEventListener("change", renderIndustryTable);
+    document.getElementById("indCompanyFilter").addEventListener("change", renderIndustryTable);
+    document.getElementById("indStatusFilter").addEventListener("change", renderIndustryTable);
+    document.getElementById("indOnlyActiveSwitch").addEventListener("change", renderIndustryTable);
+    document.getElementById("indBtnClear").addEventListener("click", () => {
+      document.getElementById("indSearchInput").value = "";
+      document.getElementById("indCourseFilter").value = "";
+      document.getElementById("indCompanyFilter").value = "";
+      document.getElementById("indStatusFilter").value = "";
+      document.getElementById("indOnlyActiveSwitch").checked = false;
+      renderIndustryTable();
     });
 
     init();
