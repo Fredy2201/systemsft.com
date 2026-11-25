@@ -19,9 +19,12 @@ if (!isset($_SESSION['usuario_dni'])) {
     .table > :not(caption) > * > * { vertical-align: middle; }
     .stat-card { cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
     .stat-card:hover { transform: translateY(-2px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important; }
+    .worker-row { cursor: pointer; transition: background-color 0.12s ease; }
     .pdf-frame { width: 100%; height: 75vh; border: none; background: #1e293b; }
-    .worker-avatar-sm { width: 36px; height: 36px; object-fit: cover; cursor: pointer; }
-    .worker-avatar-lg { width: 76px; height: 76px; object-fit: cover; cursor: pointer; }
+    .worker-avatar-sm { width: 42px; height: 42px; object-fit: cover; cursor: pointer; }
+    .worker-avatar-lg { width: 84px; height: 84px; object-fit: cover; cursor: pointer; }
+    .missing-course-card { border-left: 3px solid #94a3b8; background-color: #f8fafc; transition: all 0.15s ease; }
+    .missing-course-card:hover { background-color: #ffffff; border-left-color: #0d6efd; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
   </style>
 </head>
 <body>
@@ -29,7 +32,7 @@ if (!isset($_SESSION['usuario_dni'])) {
   <!-- Navbar Superior -->
   <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm sticky-top">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="index.php">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="index.php" onclick="volverAlListado(); return false;">
         <i class="bi bi-file-earmark-check-fill text-primary fs-4"></i>
         <div>
           <span class="d-block lh-1">Certificados ISEM</span>
@@ -56,198 +59,256 @@ if (!isset($_SESSION['usuario_dni'])) {
 
   <main class="container py-4">
 
-    <!-- Tarjetas de Estadísticas -->
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4 stat-card" onclick="filtrarPorTarjeta('')">
-          <div class="card-body d-flex align-items-center justify-content-between p-3">
-            <div>
-              <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Certificados Activos</div>
-              <div class="fs-3 fw-bold text-dark mt-1" id="statTotal">-</div>
-              <small class="text-muted" id="statWorkers">- trabajadores</small>
+    <!-- =================================================================== -->
+    <!-- VISTA 1: DIRECTORIO DE PERSONAL (BÚSQUEDA Y SELECCIÓN)              -->
+    <!-- =================================================================== -->
+    <div id="directoryView">
+
+      <!-- Tarjetas de Estadísticas Globales -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4 stat-card" onclick="filtrarPorTarjeta('')">
+            <div class="card-body d-flex align-items-center justify-content-between p-3">
+              <div>
+                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Personal Evaluado</div>
+                <div class="fs-3 fw-bold text-dark mt-1" id="statWorkers">-</div>
+                <small class="text-muted" id="statTotal">- certificados activos</small>
+              </div>
+              <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 p-md-3">
+                <i class="bi bi-people-fill fs-4"></i>
+              </div>
             </div>
-            <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 p-md-3">
-              <i class="bi bi-award-fill fs-4"></i>
+          </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4 stat-card" onclick="filtrarPorTarjeta('ALL_VIGENTE')">
+            <div class="card-body d-flex align-items-center justify-content-between p-3">
+              <div>
+                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Cursos Vigentes</div>
+                <div class="fs-3 fw-bold text-success mt-1" id="statVigentes">-</div>
+                <small class="text-muted">Más de 30 días restantes</small>
+              </div>
+              <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 p-md-3">
+                <i class="bi bi-check-circle-fill fs-4"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-warning border-4 stat-card" onclick="filtrarPorTarjeta('HAS_POR_VENCER')">
+            <div class="card-body d-flex align-items-center justify-content-between p-3">
+              <div>
+                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Por Vencer (≤30d)</div>
+                <div class="fs-3 fw-bold text-warning-emphasis mt-1" id="statPorVencer">-</div>
+                <small class="text-muted">Clic para ver afectados</small>
+              </div>
+              <div class="bg-warning bg-opacity-10 text-warning-emphasis rounded-3 p-2 p-md-3">
+                <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+          <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-danger border-4 stat-card" onclick="filtrarPorTarjeta('HAS_VENCIDO')">
+            <div class="card-body d-flex align-items-center justify-content-between p-3">
+              <div>
+                <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Cursos Vencidos</div>
+                <div class="fs-3 fw-bold text-danger mt-1" id="statVencidos">-</div>
+                <small class="text-muted">Clic para ver afectados</small>
+              </div>
+              <div class="bg-danger bg-opacity-10 text-danger rounded-3 p-2 p-md-3">
+                <i class="bi bi-x-octagon-fill fs-4"></i>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4 stat-card" onclick="filtrarPorTarjeta('VIGENTE')">
-          <div class="card-body d-flex align-items-center justify-content-between p-3">
-            <div>
-              <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Vigentes</div>
-              <div class="fs-3 fw-bold text-success mt-1" id="statVigentes">-</div>
-              <small class="text-muted">Más de 30 días restantes</small>
-            </div>
-            <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 p-md-3">
-              <i class="bi bi-check-circle-fill fs-4"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-warning border-4 stat-card" onclick="filtrarPorTarjeta('POR_VENCER')">
-          <div class="card-body d-flex align-items-center justify-content-between p-3">
-            <div>
-              <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Por Vencer (≤30d)</div>
-              <div class="fs-3 fw-bold text-warning-emphasis mt-1" id="statPorVencer">-</div>
-              <small class="text-muted">Requieren revalidación</small>
-            </div>
-            <div class="bg-warning bg-opacity-10 text-warning-emphasis rounded-3 p-2 p-md-3">
-              <i class="bi bi-exclamation-triangle-fill fs-4"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-danger border-4 stat-card" onclick="filtrarPorTarjeta('VENCIDO')">
-          <div class="card-body d-flex align-items-center justify-content-between p-3">
-            <div>
-              <div class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem;">Vencidos</div>
-              <div class="fs-3 fw-bold text-danger mt-1" id="statVencidos">-</div>
-              <small class="text-muted">Plazo expirado</small>
-            </div>
-            <div class="bg-danger bg-opacity-10 text-danger rounded-3 p-2 p-md-3">
-              <i class="bi bi-x-octagon-fill fs-4"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Panel de Búsqueda y Filtros -->
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-      <div class="card-body p-3 p-md-4">
-        <div class="row g-3 align-items-end">
-          <div class="col-12 col-lg-5">
-            <label for="searchInput" class="form-label fw-semibold small text-secondary">
-              Buscar por DNI o Apellidos y Nombres
-            </label>
-            <div class="input-group">
-              <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control" id="searchInput" placeholder="Ej. 04207095 o ESPIRITU..." autocomplete="off" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-7 col-lg-4">
-            <label for="courseFilter" class="form-label fw-semibold small text-secondary">
-              Capacitación
-            </label>
-            <select class="form-select" id="courseFilter">
-              <option value="">Todas las capacitaciones</option>
-            </select>
-          </div>
-
-          <div class="col-12 col-md-5 col-lg-3">
-            <label for="statusFilter" class="form-label fw-semibold small text-secondary">
-              Estado Curso
-            </label>
-            <select class="form-select" id="statusFilter">
-              <option value="">Todos</option>
-              <option value="VIGENTE">Vigentes</option>
-              <option value="POR_VENCER">Por vencer (≤30d)</option>
-              <option value="VENCIDO">Vencidos</option>
-            </select>
-          </div>
-        </div>
-
-        <hr class="my-3 text-muted opacity-25">
-
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-          <div class="d-flex flex-wrap gap-3 gap-md-4">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" role="switch" id="switchLatestOnly" checked>
-              <label class="form-check-label small fw-medium text-dark" for="switchLatestOnly">
-                Ocultar cursos antiguos ya revalidados
+      <!-- Panel de Búsqueda de Personal -->
+      <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body p-3 p-md-4">
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-6">
+              <label for="searchInput" class="form-label fw-semibold small text-secondary">
+                Buscar Trabajador por DNI, Apellidos o Cargo
               </label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" class="form-control" id="searchInput" placeholder="Ej. 04207095, PAICO, SUPERVISOR..." autocomplete="off" />
+              </div>
             </div>
 
+            <div class="col-12 col-md-8 col-lg-4">
+              <label for="workerStatusFilter" class="form-label fw-semibold small text-secondary">
+                Filtrar Personal por Situación
+              </label>
+              <select class="form-select" id="workerStatusFilter">
+                <option value="">Todos los trabajadores</option>
+                <option value="ALL_VIGENTE">100% al día (Sin vencidos ni por vencer)</option>
+                <option value="HAS_POR_VENCER">Con cursos por vencer (≤30d)</option>
+                <option value="HAS_VENCIDO">Con cursos vencidos</option>
+                <option value="HAS_MISSING">Con capacitaciones faltantes del catálogo</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-4 col-lg-2 d-grid">
+              <button class="btn btn-outline-secondary fw-semibold" id="btnClear" type="button">
+                <i class="bi bi-eraser-fill me-1"></i>Limpiar
+              </button>
+            </div>
+          </div>
+
+          <hr class="my-3 text-muted opacity-25">
+
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch" id="switchActiveWorkers">
               <label class="form-check-label small fw-medium text-dark" for="switchActiveWorkers">
-                Solo personal vigente en Tareo (<code>VIGENCIA = SI</code>)
+                Mostrar solo personal vigente en Tareo (<code>VIGENCIA = SI</code>)
               </label>
             </div>
-          </div>
-
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm fw-semibold px-3" id="btnClear" type="button">
-              <i class="bi bi-eraser-fill me-1"></i>Limpiar
-            </button>
+            <small class="text-muted">
+              <i class="bi bi-hand-index-thumb me-1"></i>Haz clic sobre un trabajador para ver sus capacitaciones y cursos faltantes
+            </small>
           </div>
         </div>
       </div>
+
+      <!-- Tabla de Trabajadores -->
+      <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-uppercase small text-secondary">
+              <tr>
+                <th class="ps-3">DNI</th>
+                <th>Trabajador / Cargo</th>
+                <th class="text-center">Vigencia Tareo</th>
+                <th>Estado de Capacitaciones</th>
+                <th class="text-center">Cobertura Catálogo</th>
+                <th class="text-end pe-3">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="workersTableBody" class="small">
+              <tr>
+                <td colspan="6" class="text-center py-5 text-muted">
+                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                  Cargando directorio de personal...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-3 text-muted small flex-wrap gap-2">
+        <span id="catalogInfoNote"></span>
+        <span>Mostrando <strong id="statFilteredWorkers">0</strong> trabajadores</span>
+      </div>
+
     </div>
 
-    <!-- Ficha Integral del Trabajador (Cruce con Tabla4 + Fotografía) -->
-    <div class="card border-0 shadow-sm rounded-3 mb-4 d-none border-start border-primary border-4" id="workerCard">
-      <div class="card-body p-3 p-md-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-          <div class="d-flex align-items-center gap-3">
-            <div class="position-relative flex-shrink-0">
-              <img id="workerPhoto" src="" alt="Foto trabajador"
-                   class="rounded-3 border shadow-sm worker-avatar-lg d-none"
-                   title="Clic para ampliar fotografía">
-              <div id="workerPhotoFallback"
-                   class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-sm"
-                   style="width: 76px; height: 76px;">
-                <i class="bi bi-person-vcard-fill fs-2"></i>
+    <!-- =================================================================== -->
+    <!-- VISTA 2: PERFIL INDIVIDUAL DEL TRABAJADOR (CURSOS Y FALTANTES)      -->
+    <!-- =================================================================== -->
+    <div id="workerDetailView" class="d-none">
+
+      <!-- Barra Superior de Retorno -->
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <button type="button" class="btn btn-outline-dark btn-sm fw-semibold rounded-pill px-3" onclick="volverAlListado()">
+          <i class="bi bi-arrow-left me-1"></i>Volver al listado de personal
+        </button>
+
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" role="switch" id="switchDetailLatestOnly" checked>
+          <label class="form-check-label small fw-medium text-dark" for="switchDetailLatestOnly">
+            Ocultar cursos antiguos ya revalidados
+          </label>
+        </div>
+      </div>
+
+      <!-- Tarjeta Cabecera del Trabajador -->
+      <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-primary border-4">
+        <div class="card-body p-3 p-md-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="position-relative flex-shrink-0">
+                <img id="detailPhoto" src="" alt="Foto trabajador"
+                     class="rounded-3 border shadow-sm worker-avatar-lg d-none"
+                     title="Clic para ampliar fotografía">
+                <div id="detailPhotoFallback"
+                     class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-sm"
+                     style="width: 84px; height: 84px;">
+                  <i class="bi bi-person-vcard-fill fs-1"></i>
+                </div>
+              </div>
+
+              <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <h2 class="h4 fw-bold mb-0 text-dark" id="detailName">TRABAJADOR</h2>
+                  <span class="badge bg-dark font-monospace fs-6" id="detailDni">DNI: -</span>
+                  <span id="detailVigenciaBadge"></span>
+                </div>
+                <div class="text-secondary mt-1 fw-medium" id="detailJobInfo">-</div>
+                <div class="d-flex flex-wrap gap-3 small text-muted mt-2" id="detailExtraInfo"></div>
               </div>
             </div>
 
+            <!-- Resumen numérico del trabajador -->
+            <div class="d-flex gap-2 flex-wrap" id="detailSummaryPills"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN A: CAPACITACIONES QUE SÍ TIENE -->
+      <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+        <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-patch-check-fill text-success fs-5"></i>
+            <h5 class="mb-0 fw-bold text-dark fs-6">Capacitaciones Registradas</h5>
+          </div>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3" id="detailCompletedCount">
+            0 cursos
+          </span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-uppercase small text-secondary">
+              <tr>
+                <th class="ps-3">Capacitación (Catálogo)</th>
+                <th>Emisión</th>
+                <th>Vencimiento</th>
+                <th>Estado</th>
+                <th class="text-center">Nota</th>
+                <th class="text-end pe-3">Certificado</th>
+              </tr>
+            </thead>
+            <tbody id="detailCoursesBody" class="small"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECCIÓN B: CAPACITACIONES QUE NO TIENE (BRECHA VS CATÁLOGO ISEM) -->
+      <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+        <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-diamond-fill text-warning-emphasis fs-5"></i>
             <div>
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <h2 class="h5 fw-bold mb-0 text-dark" id="workerName">TRABAJADOR</h2>
-                <span class="badge bg-dark font-monospace" id="workerDni">DNI: -</span>
-                <span id="workerVigenciaBadge"></span>
-              </div>
-              <div class="text-secondary small mt-1" id="workerJobInfo">
-                Cargando ficha laboral...
-              </div>
-              <div class="d-flex flex-wrap gap-3 small text-muted mt-2" id="workerExtraInfo"></div>
+              <h5 class="mb-0 fw-bold text-dark fs-6">Capacitaciones No Llevadas / Pendientes del Catálogo</h5>
+              <small class="text-muted">Comparado contra el catálogo general de cursos ISEM registrados en el sistema</small>
             </div>
           </div>
-
-          <div class="d-flex align-items-center gap-1 flex-wrap" id="workerBadges"></div>
+          <span class="badge bg-secondary-subtle text-dark border rounded-pill px-3" id="detailMissingCount">
+            0 faltantes
+          </span>
+        </div>
+        <div class="card-body p-3 p-md-4" id="detailMissingContainer">
+          <!-- Renderizado dinámico -->
         </div>
       </div>
-    </div>
 
-    <!-- Tabla de Resultados -->
-    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light text-uppercase small text-secondary">
-            <tr>
-              <th class="ps-3">DNI</th>
-              <th>Apellidos y Nombres / Cargo</th>
-              <th>Capacitación (Catálogo)</th>
-              <th>Emisión</th>
-              <th>Vencimiento</th>
-              <th>Estado</th>
-              <th class="text-center">Nota</th>
-              <th class="text-end pe-3">Certificado</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody" class="small">
-            <tr>
-              <td colspan="8" class="text-center py-5 text-muted">
-                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                Cargando registros...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center mt-3 text-muted small flex-wrap gap-2">
-      <span id="limitNote"></span>
-      <span>Mostrando <strong id="statFiltered">0</strong> certificados</span>
     </div>
 
   </main>
@@ -309,22 +370,24 @@ if (!isset($_SESSION['usuario_dni'])) {
     const BASE_URL = "https://systemsft.com/CERTIFICADOS%20ISEM/";
     const PHOTO_BASE_URL = "FOTOGRAFIAS/";
     const PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "JPG", "JPEG", "PNG"];
-    const MAX_ROWS_DEFAULT = 100;
 
     let rawRecords = [];
     let personalMap = {};
-    let currentFiltered = [];
+    let workersList = [];          // Lista agrupada por trabajador
+    let catalogFamilies = new Map(); // familyKey -> { label, sampleDuration }
+    let selectedWorkerDni = null;
+    let detailVisibleRecords = [];
     let currentModalIndex = -1;
     const resolvedPhotoCache = {};
 
+    const directoryView = document.getElementById("directoryView");
+    const workerDetailView = document.getElementById("workerDetailView");
     const searchInput = document.getElementById("searchInput");
-    const courseFilter = document.getElementById("courseFilter");
-    const statusFilter = document.getElementById("statusFilter");
-    const switchLatestOnly = document.getElementById("switchLatestOnly");
+    const workerStatusFilter = document.getElementById("workerStatusFilter");
     const switchActiveWorkers = document.getElementById("switchActiveWorkers");
+    const switchDetailLatestOnly = document.getElementById("switchDetailLatestOnly");
     const btnClear = document.getElementById("btnClear");
-    const tableBody = document.getElementById("tableBody");
-    const workerCard = document.getElementById("workerCard");
+    const workersTableBody = document.getElementById("workersTableBody");
 
     function showModalSafe(modalId, fallbackUrl) {
       const el = document.getElementById(modalId);
@@ -401,6 +464,14 @@ if (!isset($_SESSION['usuario_dni'])) {
         .trim();
     }
 
+    function getCleanCatalogLabel(courseName) {
+      return (courseName || "")
+        .replace(/\s*-\s*REVALIDACI[ÓO]N/gi, "")
+        .replace(/\s+REVALIDACI[ÓO]N/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
     function parseFechaToTimestamp(fechaStr) {
       if (!fechaStr) return 0;
       const parts = fechaStr.split("-");
@@ -460,188 +531,300 @@ if (!isset($_SESSION['usuario_dni'])) {
       return Array.from(latestMap.values());
     }
 
-    function getActiveBaseDataset() {
-      let base = switchLatestOnly.checked ? deduplicateRecords(rawRecords) : rawRecords;
-      if (switchActiveWorkers.checked) {
-        base = base.filter(r => (personalMap[r.d]?.vigencia || "") === "SI");
-      }
-      return base;
-    }
-
-    function updateKPIs(baseDataset) {
-      const vig = baseDataset.filter(r => r._estado.code === "VIGENTE").length;
-      const porV = baseDataset.filter(r => r._estado.code === "POR_VENCER").length;
-      const venc = baseDataset.filter(r => r._estado.code === "VENCIDO").length;
-      const workers = new Set(baseDataset.map(r => r.d)).size;
-
-      document.getElementById("statTotal").textContent = baseDataset.length.toLocaleString("es-PE");
-      document.getElementById("statWorkers").textContent = `${workers.toLocaleString("es-PE")} trabajadores`;
-      document.getElementById("statVigentes").textContent = vig.toLocaleString("es-PE");
-      document.getElementById("statPorVencer").textContent = porV.toLocaleString("es-PE");
-      document.getElementById("statVencidos").textContent = venc.toLocaleString("es-PE");
-    }
-
-    function filtrarPorTarjeta(estado) {
-      statusFilter.value = estado;
-      renderTable();
-    }
-
-    function populateFilters(records) {
-      const courses = [...new Set(records.map(r => r.t))].sort((a, b) => a.localeCompare(b));
-      courses.forEach(course => {
-        const opt = document.createElement("option");
-        opt.value = course;
-        opt.textContent = course;
-        courseFilter.appendChild(opt);
+    // Construye el catálogo maestro de capacitaciones y agrupa los datos por trabajador
+    function buildWorkersAndCatalog() {
+      catalogFamilies.clear();
+      rawRecords.forEach(r => {
+        if (!catalogFamilies.has(r._family)) {
+          catalogFamilies.set(r._family, {
+            family: r._family,
+            label: getCleanCatalogLabel(r.t),
+            months: r.m
+          });
+        }
       });
+
+      const latestAll = deduplicateRecords(rawRecords);
+      const byDni = new Map();
+
+      latestAll.forEach(r => {
+        if (!byDni.has(r.d)) {
+          byDni.set(r.d, {
+            dni: r.d,
+            nombre: r.n,
+            latestCourses: [],
+            allCourses: []
+          });
+        }
+        byDni.get(r.d).latestCourses.push(r);
+      });
+
+      rawRecords.forEach(r => {
+        if (byDni.has(r.d)) {
+          byDni.get(r.d).allCourses.push(r);
+        }
+      });
+
+      const totalCatalogCount = catalogFamilies.size;
+
+      workersList = Array.from(byDni.values()).map(w => {
+        const p = personalMap[w.dni] || {};
+        const vig = w.latestCourses.filter(c => c._estado.code === "VIGENTE").length;
+        const porV = w.latestCourses.filter(c => c._estado.code === "POR_VENCER").length;
+        const venc = w.latestCourses.filter(c => c._estado.code === "VENCIDO").length;
+
+        const completedFamilies = new Set(w.latestCourses.map(c => c._family));
+        const missingCourses = [];
+        catalogFamilies.forEach((catItem, famKey) => {
+          if (!completedFamilies.has(famKey)) {
+            missingCourses.push(catItem);
+          }
+        });
+        missingCourses.sort((a, b) => a.label.localeCompare(b.label));
+
+        return {
+          ...w,
+          cargo: p.cargo || "",
+          especialidad: p.especialidad || "",
+          linea: p.linea || "",
+          ot: p.ot || "",
+          celular: p.celular || "",
+          sangre: p.sangre || "",
+          vigencia: p.vigencia || "",
+          vigentesCount: vig,
+          porVencerCount: porV,
+          vencidosCount: venc,
+          completedFamiliesCount: completedFamilies.size,
+          totalCatalogCount,
+          missingCourses
+        };
+      }).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+      document.getElementById("catalogInfoNote").textContent =
+        `Catálogo ISEM detectado: ${totalCatalogCount} capacitaciones distintas.`;
     }
 
-    function openPdfModal(index) {
-      if (index < 0 || index >= currentFiltered.length) return;
-      currentModalIndex = index;
-      const r = currentFiltered[index];
-      const url = buildPdfUrl(r.d, r.a);
+    function updateDirectoryKPIs(filteredWorkers) {
+      let totalCerts = 0;
+      let totalVig = 0;
+      let totalPorV = 0;
+      let totalVenc = 0;
 
-      document.getElementById("modalPdfTitle").textContent = `${r.n} (${r.d})`;
-      document.getElementById("modalPdfSubtitle").textContent = `${r.t} • Emitido: ${r.f} • Vence: ${r.v || "-"}`;
-      document.getElementById("pdfIframe").src = url;
-      document.getElementById("modalDownloadBtn").href = url;
-      document.getElementById("modalDownloadBtn").setAttribute("download", r.a);
+      filteredWorkers.forEach(w => {
+        totalCerts += w.latestCourses.length;
+        totalVig += w.vigentesCount;
+        totalPorV += w.porVencerCount;
+        totalVenc += w.vencidosCount;
+      });
 
-      document.getElementById("btnPrevPdf").disabled = index === 0;
-      document.getElementById("btnNextPdf").disabled = index === currentFiltered.length - 1;
-      showModalSafe("pdfModal", url);
+      document.getElementById("statWorkers").textContent = filteredWorkers.length.toLocaleString("es-PE");
+      document.getElementById("statTotal").textContent = `${totalCerts.toLocaleString("es-PE")} certificados activos`;
+      document.getElementById("statVigentes").textContent = totalVig.toLocaleString("es-PE");
+      document.getElementById("statPorVencer").textContent = totalPorV.toLocaleString("es-PE");
+      document.getElementById("statVencidos").textContent = totalVenc.toLocaleString("es-PE");
     }
 
-    document.getElementById("btnPrevPdf").addEventListener("click", () => openPdfModal(currentModalIndex - 1));
-    document.getElementById("btnNextPdf").addEventListener("click", () => openPdfModal(currentModalIndex + 1));
+    function filtrarPorTarjeta(filtro) {
+      workerStatusFilter.value = filtro;
+      renderWorkersDirectory();
+    }
 
-    function renderTable() {
-      const baseDataset = getActiveBaseDataset();
-      updateKPIs(baseDataset);
+    function renderWorkersDirectory() {
+      const query = normalizeText(searchInput.value.trim());
+      const statusMode = workerStatusFilter.value;
+      const onlyActiveTareo = switchActiveWorkers.checked;
 
-      const rawQuery = searchInput.value.trim();
-      const query = normalizeText(rawQuery);
-      const selectedCourse = courseFilter.value;
-      const selectedStatus = statusFilter.value;
+      const filtered = workersList.filter(w => {
+        if (onlyActiveTareo && w.vigencia !== "SI") return false;
+        if (statusMode === "ALL_VIGENTE" && (w.vencidosCount > 0 || w.porVencerCount > 0)) return false;
+        if (statusMode === "HAS_POR_VENCER" && w.porVencerCount === 0) return false;
+        if (statusMode === "HAS_VENCIDO" && w.vencidosCount === 0) return false;
+        if (statusMode === "HAS_MISSING" && w.missingCourses.length === 0) return false;
 
-      currentFiltered = baseDataset.filter(r => {
-        if (selectedCourse && r.t !== selectedCourse) return false;
-        if (selectedStatus && r._estado.code !== selectedStatus) return false;
         if (!query) return true;
-        return r.d.includes(query) || normalizeText(r.n).includes(query);
+        return w.dni.includes(query) ||
+               normalizeText(w.nombre).includes(query) ||
+               normalizeText(w.cargo).includes(query);
       });
 
-      document.getElementById("statFiltered").textContent = currentFiltered.length.toLocaleString("es-PE");
+      updateDirectoryKPIs(filtered);
+      document.getElementById("statFilteredWorkers").textContent = filtered.length.toLocaleString("es-PE");
 
-      const uniqueDnis = [...new Set(currentFiltered.map(r => r.d))];
-      if (rawQuery.length >= 4 && uniqueDnis.length === 1 && currentFiltered.length > 0) {
-        const dni = currentFiltered[0].d;
-        const nombre = currentFiltered[0].n;
-        const p = personalMap[dni] || {};
-
-        workerCard.classList.remove("d-none");
-        document.getElementById("workerName").textContent = nombre;
-        document.getElementById("workerDni").textContent = `DNI: ${dni}`;
-
-        const photoEl = document.getElementById("workerPhoto");
-        const fallbackEl = document.getElementById("workerPhotoFallback");
-        if (resolvedPhotoCache[dni] === null) {
-          photoEl.classList.add("d-none");
-          fallbackEl.classList.remove("d-none");
-        } else {
-          photoEl.dataset.extIdx = "0";
-          photoEl.classList.add("d-none");
-          fallbackEl.classList.remove("d-none");
-          photoEl.onload = () => handlePhotoLoad(photoEl, dni);
-          photoEl.onerror = () => handlePhotoError(photoEl, dni);
-          photoEl.onclick = () => openPhotoModal(dni, nombre, photoEl.src);
-          photoEl.src = getInitialPhotoSrc(dni);
-        }
-
-        const vigBadge = document.getElementById("workerVigenciaBadge");
-        if (p.vigencia === "SI") {
-          vigBadge.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle">VIGENTE EN OBRA</span>`;
-        } else if (p.vigencia === "NO") {
-          vigBadge.innerHTML = `<span class="badge bg-secondary-subtle text-secondary border">CESADO / NO VIGENTE</span>`;
-        } else {
-          vigBadge.innerHTML = "";
-        }
-
-        document.getElementById("workerJobInfo").textContent = p.cargo
-          ? `${p.cargo}${p.especialidad ? " • " + p.especialidad : ""}${p.linea ? " (" + p.linea + ")" : ""}`
-          : "Sin datos adicionales en lista de Tareo";
-
-        const extras = [];
-        if (p.ot && p.ot !== "0") extras.push(`<span><i class="bi bi-briefcase-fill text-primary me-1"></i>OT: <strong>${p.ot}</strong></span>`);
-        if (p.celular) extras.push(`<span><i class="bi bi-telephone-fill text-success me-1"></i>Cel: <strong>${p.celular}</strong></span>`);
-        if (p.sangre) extras.push(`<span><i class="bi bi-droplet-fill text-danger me-1"></i>Grupo: <strong>${p.sangre}</strong></span>`);
-        document.getElementById("workerExtraInfo").innerHTML = extras.join("");
-
-        const vig = currentFiltered.filter(x => x._estado.code === "VIGENTE").length;
-        const porV = currentFiltered.filter(x => x._estado.code === "POR_VENCER").length;
-        const venc = currentFiltered.filter(x => x._estado.code === "VENCIDO").length;
-
-        document.getElementById("workerBadges").innerHTML = `
-          <span class="badge bg-success rounded-pill px-2 py-1">${vig} Vigente(s)</span>
-          ${porV > 0 ? `<span class="badge bg-warning text-dark rounded-pill px-2 py-1">${porV} Por vencer</span>` : ""}
-          ${venc > 0 ? `<span class="badge bg-danger rounded-pill px-2 py-1">${venc} Vencido(s)</span>` : ""}
-        `;
-      } else {
-        workerCard.classList.add("d-none");
-      }
-
-      if (currentFiltered.length === 0) {
-        tableBody.innerHTML = `
+      if (filtered.length === 0) {
+        workersTableBody.innerHTML = `
           <tr>
-            <td colspan="8" class="text-center py-5 text-muted">
-              <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-              No se encontraron certificados con los criterios ingresados.
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-person-x fs-3 d-block mb-2"></i>
+              No se encontraron trabajadores con los filtros seleccionados.
             </td>
           </tr>`;
-        document.getElementById("limitNote").textContent = "";
         return;
       }
 
-      const isSearching = query.length > 0 || selectedCourse !== "" || selectedStatus !== "";
-      const visibleRows = isSearching ? currentFiltered : currentFiltered.slice(0, MAX_ROWS_DEFAULT);
+      workersTableBody.innerHTML = filtered.map(w => {
+        const knownNoPhoto = resolvedPhotoCache[w.dni] === null;
+        const initialSrc = knownNoPhoto ? "" : getInitialPhotoSrc(w.dni);
+        const safeNameAttr = escapeHtmlAttr(w.nombre);
+        const pct = w.totalCatalogCount > 0
+          ? Math.round((w.completedFamiliesCount / w.totalCatalogCount) * 100)
+          : 0;
 
-      tableBody.innerHTML = visibleRows.map((r, idx) => {
-        const url = buildPdfUrl(r.d, r.a);
-        const est = r._estado;
-        const p = personalMap[r.d] || {};
-        const knownNoPhoto = resolvedPhotoCache[r.d] === null;
-        const initialSrc = knownNoPhoto ? "" : getInitialPhotoSrc(r.d);
-        const safeNameAttr = escapeHtmlAttr(r.n);
+        let vigBadge = `<span class="badge bg-light text-muted border">Sin dato</span>`;
+        if (w.vigencia === "SI") {
+          vigBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle">VIGENTE</span>`;
+        } else if (w.vigencia === "NO") {
+          vigBadge = `<span class="badge bg-secondary-subtle text-secondary border">NO VIGENTE</span>`;
+        }
 
         return `
-          <tr>
+          <tr class="worker-row" onclick="abrirPerfilTrabajador('${w.dni}')">
             <td class="ps-3">
-              <span class="badge bg-light text-dark border font-monospace">${r.d}</span>
+              <span class="badge bg-light text-dark border font-monospace">${w.dni}</span>
             </td>
             <td>
               <div class="d-flex align-items-center gap-2">
                 ${knownNoPhoto ? "" : `
                   <img src="${initialSrc}" data-ext-idx="0" alt=""
-                       data-dni="${r.d}" data-nombre="${safeNameAttr}"
+                       data-dni="${w.dni}" data-nombre="${safeNameAttr}"
                        class="rounded-circle border worker-avatar-sm flex-shrink-0 d-none"
                        onload="handlePhotoLoad(this, this.dataset.dni)"
                        onerror="handlePhotoError(this, this.dataset.dni)"
-                       onclick="openPhotoModal(this.dataset.dni, this.dataset.nombre, this.src)"
-                       title="Ver fotografía">
+                       onclick="event.stopPropagation(); openPhotoModal(this.dataset.dni, this.dataset.nombre, this.src)"
+                       title="Ampliar foto">
                 `}
-                <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width: 36px; height: 36px;">
-                  <i class="bi bi-person-fill"></i>
+                <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width: 42px; height: 42px;">
+                  <i class="bi bi-person-fill fs-5"></i>
                 </div>
                 <div>
-                  <div class="fw-semibold text-dark">${r.n}</div>
-                  <small class="text-muted">${p.cargo || ""}${p.ot && p.ot !== "0" ? " • OT " + p.ot : ""}</small>
+                  <div class="fw-bold text-dark">${w.nombre}</div>
+                  <small class="text-muted">${w.cargo || "Cargo no registrado en Tareo"}</small>
                 </div>
               </div>
             </td>
+            <td class="text-center text-nowrap">${vigBadge}</td>
             <td>
-              <div>${r.t}</div>
+              <div class="d-flex flex-wrap gap-1">
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                  ${w.vigentesCount} Vigente(s)
+                </span>
+                ${w.porVencerCount > 0 ? `
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill">
+                    ${w.porVencerCount} Por vencer
+                  </span>` : ""}
+                ${w.vencidosCount > 0 ? `
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">
+                    ${w.vencidosCount} Vencido(s)
+                  </span>` : ""}
+              </div>
+            </td>
+            <td class="text-center" style="min-width: 150px;">
+              <div class="small fw-semibold text-dark mb-1">
+                ${w.completedFamiliesCount} / ${w.totalCatalogCount} cursos
+                <span class="text-muted fw-normal">(${w.missingCourses.length} faltantes)</span>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div class="progress-bar ${pct === 100 ? 'bg-success' : 'bg-primary'}" style="width: ${pct}%"></div>
+              </div>
+            </td>
+            <td class="text-end pe-3 text-nowrap">
+              <button type="button" class="btn btn-primary btn-sm fw-semibold rounded-pill px-3">
+                Ver Ficha <i class="bi bi-chevron-right ms-1"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function abrirPerfilTrabajador(dni) {
+      const worker = workersList.find(w => w.dni === dni);
+      if (!worker) return;
+      selectedWorkerDni = dni;
+
+      directoryView.classList.add("d-none");
+      workerDetailView.classList.remove("d-none");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Cabecera del trabajador
+      document.getElementById("detailName").textContent = worker.nombre;
+      document.getElementById("detailDni").textContent = `DNI: ${worker.dni}`;
+
+      const photoEl = document.getElementById("detailPhoto");
+      const fallbackEl = document.getElementById("detailPhotoFallback");
+      if (resolvedPhotoCache[dni] === null) {
+        photoEl.classList.add("d-none");
+        fallbackEl.classList.remove("d-none");
+      } else {
+        photoEl.dataset.extIdx = "0";
+        photoEl.classList.add("d-none");
+        fallbackEl.classList.remove("d-none");
+        photoEl.onload = () => handlePhotoLoad(photoEl, dni);
+        photoEl.onerror = () => handlePhotoError(photoEl, dni);
+        photoEl.onclick = () => openPhotoModal(dni, worker.nombre, photoEl.src);
+        photoEl.src = getInitialPhotoSrc(dni);
+      }
+
+      const vigBadge = document.getElementById("detailVigenciaBadge");
+      if (worker.vigencia === "SI") {
+        vigBadge.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle">VIGENTE EN OBRA</span>`;
+      } else if (worker.vigencia === "NO") {
+        vigBadge.innerHTML = `<span class="badge bg-secondary-subtle text-secondary border">CESADO / NO VIGENTE</span>`;
+      } else {
+        vigBadge.innerHTML = "";
+      }
+
+      document.getElementById("detailJobInfo").textContent = worker.cargo
+        ? `${worker.cargo}${worker.especialidad ? " • " + worker.especialidad : ""}${worker.linea ? " (" + worker.linea + ")" : ""}`
+        : "Sin datos adicionales en lista de Tareo";
+
+      const extras = [];
+      if (worker.ot && worker.ot !== "0") extras.push(`<span><i class="bi bi-briefcase-fill text-primary me-1"></i>OT: <strong>${worker.ot}</strong></span>`);
+      if (worker.celular) extras.push(`<span><i class="bi bi-telephone-fill text-success me-1"></i>Cel: <strong>${worker.celular}</strong></span>`);
+      if (worker.sangre) extras.push(`<span><i class="bi bi-droplet-fill text-danger me-1"></i>Grupo: <strong>${worker.sangre}</strong></span>`);
+      document.getElementById("detailExtraInfo").innerHTML = extras.join("");
+
+      document.getElementById("detailSummaryPills").innerHTML = `
+        <span class="badge bg-success rounded-pill px-3 py-2">${worker.vigentesCount} Vigente(s)</span>
+        ${worker.porVencerCount > 0 ? `<span class="badge bg-warning text-dark rounded-pill px-3 py-2">${worker.porVencerCount} Por vencer</span>` : ""}
+        ${worker.vencidosCount > 0 ? `<span class="badge bg-danger rounded-pill px-3 py-2">${worker.vencidosCount} Vencido(s)</span>` : ""}
+        <span class="badge bg-secondary rounded-pill px-3 py-2">${worker.missingCourses.length} Faltante(s)</span>
+      `;
+
+      renderWorkerDetailCourses();
+      renderWorkerMissingCourses(worker);
+    }
+
+    function renderWorkerDetailCourses() {
+      const worker = workersList.find(w => w.dni === selectedWorkerDni);
+      if (!worker) return;
+
+      detailVisibleRecords = switchDetailLatestOnly.checked
+        ? [...worker.latestCourses]
+        : [...worker.allCourses];
+
+      // Ordenar: primero vencidos, luego por vencer, luego vigentes
+      const priority = { VENCIDO: 1, POR_VENCER: 2, VIGENTE: 3, SIN_FECHA: 4 };
+      detailVisibleRecords.sort((a, b) => (priority[a._estado.code] || 9) - (priority[b._estado.code] || 9));
+
+      document.getElementById("detailCompletedCount").textContent = `${detailVisibleRecords.length} curso(s)`;
+
+      const tbody = document.getElementById("detailCoursesBody");
+      if (detailVisibleRecords.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">Este trabajador no tiene capacitaciones registradas.</td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = detailVisibleRecords.map((r, idx) => {
+        const url = buildPdfUrl(r.d, r.a);
+        const est = r._estado;
+        return `
+          <tr>
+            <td class="ps-3">
+              <div class="fw-semibold text-dark">${r.t}</div>
               <small class="text-muted">Duración: ${r.m} meses</small>
             </td>
             <td class="text-nowrap text-secondary">${r.f}</td>
@@ -669,14 +852,68 @@ if (!isset($_SESSION['usuario_dni'])) {
           </tr>
         `;
       }).join("");
-
-      if (!isSearching && currentFiltered.length > MAX_ROWS_DEFAULT) {
-        document.getElementById("limitNote").textContent =
-          `Mostrando los primeros ${MAX_ROWS_DEFAULT} de ${currentFiltered.length.toLocaleString("es-PE")} certificados. Usa los filtros para consultar toda la base.`;
-      } else {
-        document.getElementById("limitNote").textContent = "";
-      }
     }
+
+    function renderWorkerMissingCourses(worker) {
+      const container = document.getElementById("detailMissingContainer");
+      const missing = worker.missingCourses;
+
+      document.getElementById("detailMissingCount").textContent = `${missing.length} faltante(s)`;
+
+      if (missing.length === 0) {
+        container.innerHTML = `
+          <div class="alert alert-success mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div><strong>¡Catálogo completo!</strong> Este trabajador cuenta con todas las capacitaciones registradas en el sistema.</div>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="row g-2">
+          ${missing.map(item => `
+            <div class="col-12 col-md-6">
+              <div class="p-3 rounded-3 border missing-course-card d-flex align-items-center justify-content-between gap-2 h-100">
+                <div class="d-flex align-items-start gap-2">
+                  <i class="bi bi-dash-circle text-secondary mt-1"></i>
+                  <div>
+                    <div class="fw-semibold text-dark small">${item.label}</div>
+                    <small class="text-muted">Vigencia estándar: ${item.months} meses</small>
+                  </div>
+                </div>
+                <span class="badge bg-light text-secondary border text-nowrap">No llevado</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function volverAlListado() {
+      selectedWorkerDni = null;
+      workerDetailView.classList.add("d-none");
+      directoryView.classList.remove("d-none");
+    }
+
+    function openPdfModal(index) {
+      if (index < 0 || index >= detailVisibleRecords.length) return;
+      currentModalIndex = index;
+      const r = detailVisibleRecords[index];
+      const url = buildPdfUrl(r.d, r.a);
+
+      document.getElementById("modalPdfTitle").textContent = `${r.n} (${r.d})`;
+      document.getElementById("modalPdfSubtitle").textContent = `${r.t} • Emitido: ${r.f} • Vence: ${r.v || "-"}`;
+      document.getElementById("pdfIframe").src = url;
+      document.getElementById("modalDownloadBtn").href = url;
+      document.getElementById("modalDownloadBtn").setAttribute("download", r.a);
+
+      document.getElementById("btnPrevPdf").disabled = index === 0;
+      document.getElementById("btnNextPdf").disabled = index === detailVisibleRecords.length - 1;
+      showModalSafe("pdfModal", url);
+    }
+
+    document.getElementById("btnPrevPdf").addEventListener("click", () => openPdfModal(currentModalIndex - 1));
+    document.getElementById("btnNextPdf").addEventListener("click", () => openPdfModal(currentModalIndex + 1));
 
     async function init() {
       try {
@@ -700,31 +937,28 @@ if (!isset($_SESSION['usuario_dni'])) {
 
         document.getElementById("badgeUpdate").innerHTML = `<i class="bi bi-clock-history"></i> Actualizado: ${data.actualizado || "OK"}`;
 
-        populateFilters(rawRecords);
-        renderTable();
+        buildWorkersAndCatalog();
+        renderWorkersDirectory();
       } catch (err) {
-        tableBody.innerHTML = `
+        workersTableBody.innerHTML = `
           <tr>
-            <td colspan="8" class="text-center py-4 text-danger">
+            <td colspan="6" class="text-center py-4 text-danger">
               <i class="bi bi-exclamation-octagon-fill me-1"></i> Error: ${err.message}
             </td>
           </tr>`;
       }
     }
 
-    searchInput.addEventListener("input", renderTable);
-    courseFilter.addEventListener("change", renderTable);
-    statusFilter.addEventListener("change", renderTable);
-    switchLatestOnly.addEventListener("change", renderTable);
-    switchActiveWorkers.addEventListener("change", renderTable);
+    searchInput.addEventListener("input", renderWorkersDirectory);
+    workerStatusFilter.addEventListener("change", renderWorkersDirectory);
+    switchActiveWorkers.addEventListener("change", renderWorkersDirectory);
+    switchDetailLatestOnly.addEventListener("change", renderWorkerDetailCourses);
 
     btnClear.addEventListener("click", () => {
       searchInput.value = "";
-      courseFilter.value = "";
-      statusFilter.value = "";
-      switchLatestOnly.checked = true;
+      workerStatusFilter.value = "";
       switchActiveWorkers.checked = false;
-      renderTable();
+      renderWorkersDirectory();
     });
 
     init();
