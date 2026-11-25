@@ -8,13 +8,13 @@ if (!hash_equals($TOKEN_VALIDO, $tokenRecibido)) {
     exit('Acceso denegado: enlace de descarga inválido.');
 }
 
-$rutaXlsx = __DIR__ . '/tareo_consolidado.xlsx';
+$rutaXlsx = __DIR__ . '/tareo_consolidado.xlsm';
 if (!file_exists($rutaXlsx)) {
     http_response_code(404);
     exit('El archivo consolidado aún no ha sido subido al servidor.');
 }
 
-$nombreDescarga = 'TAREO_CONSOLIDADO_' . date('Y-m-d_Hi') . '.xlsx';
+$nombreDescarga = 'TAREO_CONSOLIDADO_' . date('Y-m-d_Hi') . '.xlsm';
 
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment; filename="' . $nombreDescarga . '"');
