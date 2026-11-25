@@ -200,7 +200,6 @@ if (!isset($_SESSION['usuario_dni'])) {
                 <tr>
                   <th class="ps-3">DNI</th>
                   <th>Trabajador / Cargo</th>
-                  <th class="text-center">Vigencia Tareo</th>
                   <th>Estado de Capacitaciones</th>
                   <th class="text-center">Cobertura Catálogo</th>
                   <th class="text-end pe-3">Acción</th>
@@ -208,7 +207,7 @@ if (!isset($_SESSION['usuario_dni'])) {
               </thead>
               <tbody id="workersTableBody" class="small">
                 <tr>
-                  <td colspan="6" class="text-center py-5 text-muted">
+                  <td colspan="5" class="text-center py-5 text-muted">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                     Cargando directorio de personal...
                   </td>
@@ -238,6 +237,9 @@ if (!isset($_SESSION['usuario_dni'])) {
             </label>
           </div>
         </div>
+
+        <!-- ALERTA AUTOMÁTICA DE CAPACITACIONES VENCIDAS / POR VENCER -->
+        <div id="workerExpiredAlertBox" class="d-none mb-4"></div>
 
         <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-primary border-4">
           <div class="card-body p-3 p-md-4">
@@ -323,7 +325,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     <!-- =================================================================== -->
     <div id="moduleIndustry" class="d-none">
 
-      <!-- Barra de Estado y Sincronización SharePoint -->
       <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
         <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
           <div class="d-flex align-items-center gap-3">
@@ -337,7 +338,7 @@ if (!isset($_SESSION['usuario_dni'])) {
           </div>
 
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <a href="https://myscia-my.sharepoint.com/:x:/g/personal/administrador_condorcocha_myssa_com_pe/IQBsIzBnnOJHRYCqpG7z8HcKAT9R7G3oksioxtTrSQuqZs8?e=4OpDKu"
+            <a href="https://myscia-my.sharepoint.com/:x:/g/personal/administrador_condorcocha_myssa_com_pe/IQBsIzBnnOJHRYCqpG7z8HcKAT9R7G3oksioxtTrSQuqZs8?e=2zSaqj"
                target="_blank" class="btn btn-outline-secondary btn-sm fw-semibold">
               <i class="bi bi-box-arrow-up-right me-1"></i>Abrir SharePoint
             </a>
@@ -352,7 +353,6 @@ if (!isset($_SESSION['usuario_dni'])) {
         </div>
       </div>
 
-      <!-- Alerta de aviso si SharePoint pide login -->
       <div class="alert alert-warning d-none shadow-sm border-0 rounded-3" id="indWarningBox"></div>
 
       <!-- KPIs Industry -->
@@ -583,7 +583,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     let currentModalIndex = -1;
     const resolvedPhotoCache = {};
 
-    // Variables Módulo Industry
     let industryLoaded = false;
     let industryRecords = [];
 
@@ -596,9 +595,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     const btnClear = document.getElementById("btnClear");
     const workersTableBody = document.getElementById("workersTableBody");
 
-    // =========================================================================
-    // NAVEGACIÓN ENTRE MÓDULOS DEL MENÚ
-    // =========================================================================
     function switchModule(moduleName) {
       const modIsem = document.getElementById("moduleIsem");
       const modInd  = document.getElementById("moduleIndustry");
@@ -763,9 +759,6 @@ if (!isset($_SESSION['usuario_dni'])) {
       return Array.from(latestMap.values());
     }
 
-    // =========================================================================
-    // LÓGICA MÓDULO 1: ISEM
-    // =========================================================================
     function buildWorkersAndCatalog() {
       catalogFamilies.clear();
       rawRecords.forEach(r => {
@@ -883,7 +876,7 @@ if (!isset($_SESSION['usuario_dni'])) {
       if (filtered.length === 0) {
         workersTableBody.innerHTML = `
           <tr>
-            <td colspan="6" class="text-center py-5 text-muted">
+            <td colspan="5" class="text-center py-5 text-muted">
               <i class="bi bi-person-x fs-3 d-block mb-2"></i>
               No se encontraron trabajadores con los filtros seleccionados.
             </td>
@@ -898,13 +891,6 @@ if (!isset($_SESSION['usuario_dni'])) {
         const pct = w.totalCatalogCount > 0
           ? Math.round((w.completedFamiliesCount / w.totalCatalogCount) * 100)
           : 0;
-
-        let vigBadge = `<span class="badge bg-light text-muted border">Sin dato</span>`;
-        if (w.vigencia === "SI") {
-          vigBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle">VIGENTE</span>`;
-        } else if (w.vigencia === "NO") {
-          vigBadge = `<span class="badge bg-secondary-subtle text-secondary border">NO VIGENTE</span>`;
-        }
 
         return `
           <tr class="worker-row" onclick="abrirPerfilTrabajador('${w.dni}')">
@@ -932,7 +918,6 @@ if (!isset($_SESSION['usuario_dni'])) {
                 </div>
               </div>
             </td>
-            <td class="text-center text-nowrap">${vigBadge}</td>
             <td>
               <div class="d-flex flex-wrap gap-1">
                 <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
@@ -967,6 +952,66 @@ if (!isset($_SESSION['usuario_dni'])) {
       }).join("");
     }
 
+    function renderWorkerExpirationAlert(worker) {
+      const alertBox = document.getElementById("workerExpiredAlertBox");
+      const expiredList = worker.latestCourses.filter(c => c._estado.code === "VENCIDO");
+      const expiringList = worker.latestCourses.filter(c => c._estado.code === "POR_VENCER");
+
+      if (expiredList.length === 0 && expiringList.length === 0) {
+        alertBox.classList.add("d-none");
+        alertBox.innerHTML = "";
+        return;
+      }
+
+      let html = "";
+
+      if (expiredList.length > 0) {
+        html += `
+          <div class="alert alert-danger border-0 border-start border-danger border-4 shadow-sm rounded-3 mb-2" role="alert">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-exclamation-octagon-fill fs-3 text-danger flex-shrink-0 mt-1"></i>
+              <div class="w-100">
+                <div class="fw-bold fs-6 mb-1">
+                  Atención: Este trabajador tiene ${expiredList.length} capacitación(es) VENCIDA(S)
+                </div>
+                <ul class="mb-0 ps-3 small">
+                  ${expiredList.map(c => `
+                    <li class="mb-1">
+                      <strong>${c.t}</strong> — Venció el <strong>${c.v || "-"}</strong>
+                      <span class="badge bg-danger ms-1">Hace ${Math.abs(c._estado.dias)} día(s)</span>
+                    </li>
+                  `).join("")}
+                </ul>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      if (expiringList.length > 0) {
+        html += `
+          <div class="alert alert-warning border-0 border-start border-warning border-4 shadow-sm rounded-3 mb-0" role="alert">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-exclamation-triangle-fill fs-4 text-warning-emphasis flex-shrink-0 mt-1"></i>
+              <div class="w-100">
+                <div class="fw-bold small mb-1">
+                  Próximas a vencer (≤ 30 días): ${expiringList.length} capacitación(es)
+                </div>
+                <ul class="mb-0 ps-3 small">
+                  ${expiringList.map(c => `
+                    <li>
+                      <strong>${c.t}</strong> — Vence el <strong>${c.v || "-"}</strong> (${c._estado.label})
+                    </li>
+                  `).join("")}
+                </ul>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      alertBox.innerHTML = html;
+      alertBox.classList.remove("d-none");
+    }
+
     function abrirPerfilTrabajador(dni) {
       const worker = workersList.find(w => w.dni === dni);
       if (!worker) return;
@@ -975,6 +1020,9 @@ if (!isset($_SESSION['usuario_dni'])) {
       directoryView.classList.add("d-none");
       workerDetailView.classList.remove("d-none");
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Mostrar alerta de capacitaciones vencidas / por vencer al ingresar
+      renderWorkerExpirationAlert(worker);
 
       document.getElementById("detailName").textContent = worker.nombre;
       document.getElementById("detailDni").textContent = `DNI: ${worker.dni}`;
@@ -1135,9 +1183,6 @@ if (!isset($_SESSION['usuario_dni'])) {
     document.getElementById("btnPrevPdf").addEventListener("click", () => openPdfModal(currentModalIndex - 1));
     document.getElementById("btnNextPdf").addEventListener("click", () => openPdfModal(currentModalIndex + 1));
 
-    // =========================================================================
-    // LÓGICA MÓDULO 2: CAPACITACIONES INDUSTRY / ADMIN (SHAREPOINT)
-    // =========================================================================
     async function loadIndustryData(forceSync = false) {
       const btnSync = document.getElementById("btnSyncSharePoint");
       const statusEl = document.getElementById("indSyncStatus");
@@ -1225,7 +1270,6 @@ if (!isset($_SESSION['usuario_dni'])) {
         ? industryRecords.filter(r => r.estado_excel !== "RETIRADO")
         : industryRecords;
 
-      // Actualizar KPIs
       document.getElementById("indStatTotal").textContent = base.length.toLocaleString("es-PE");
       document.getElementById("indStatWorkers").textContent = `${new Set(base.map(r => r.d)).size} trabajadores`;
       document.getElementById("indStatVigentes").textContent = base.filter(r => r._estado.code === "VIGENTE").length.toLocaleString("es-PE");
@@ -1272,7 +1316,6 @@ if (!isset($_SESSION['usuario_dni'])) {
       }).join("");
     }
 
-    // Subida manual de respaldo .xlsx
     document.getElementById("manualXlsxInput").addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -1307,9 +1350,6 @@ if (!isset($_SESSION['usuario_dni'])) {
       }
     });
 
-    // =========================================================================
-    // INICIALIZACIÓN GLOBAL
-    // =========================================================================
     async function init() {
       try {
         const res = await fetch(`datos_protegidos.php?v=${Date.now()}`, {
@@ -1337,7 +1377,7 @@ if (!isset($_SESSION['usuario_dni'])) {
       } catch (err) {
         workersTableBody.innerHTML = `
           <tr>
-            <td colspan="6" class="text-center py-4 text-danger">
+            <td colspan="5" class="text-center py-4 text-danger">
               <i class="bi bi-exclamation-octagon-fill me-1"></i> Error: ${err.message}
             </td>
           </tr>`;
