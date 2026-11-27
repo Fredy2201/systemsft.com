@@ -11,11 +11,29 @@ if (!isset($_SESSION['usuario_dni'])) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal de Certificados | MYS</title>
+  <link rel="icon" type="image/png" href="img/LOGO-2.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
     body { background-color: #f1f5f9; }
     .navbar-custom { background-color: #0f172a; }
+    .navbar-logo-wrap {
+      width: 42px;
+      height: 42px;
+      background-color: #ffffff;
+      border-radius: 50%;
+      padding: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      flex-shrink: 0;
+    }
+    .navbar-logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
     .table > :not(caption) > * > * { vertical-align: middle; }
     .stat-card { cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
     .stat-card:hover { transform: translateY(-2px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08) !important; }
@@ -33,11 +51,13 @@ if (!isset($_SESSION['usuario_dni'])) {
 </head>
 <body>
 
-  <!-- Navbar Superior con Menú de Módulos -->
+  <!-- Navbar Superior con Logo M&S y Menú de Módulos -->
   <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm sticky-top">
     <div class="container">
       <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="index.php" onclick="switchModule('isem'); volverAlListado(); return false;">
-        <i class="bi bi-file-earmark-check-fill text-primary fs-4"></i>
+        <div class="navbar-logo-wrap">
+          <img src="img/LOGO-2.png" alt="Logo M&S">
+        </div>
         <div>
           <span class="d-block lh-1">Portal Capacitaciones</span>
           <small class="text-white-50 fw-normal" style="font-size: 0.72rem;">Mantenimiento y Supervisión S.A.</small>
@@ -1021,7 +1041,6 @@ if (!isset($_SESSION['usuario_dni'])) {
       workerDetailView.classList.remove("d-none");
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Mostrar alerta de capacitaciones vencidas / por vencer al ingresar
       renderWorkerExpirationAlert(worker);
 
       document.getElementById("detailName").textContent = worker.nombre;
